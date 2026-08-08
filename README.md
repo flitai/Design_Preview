@@ -190,3 +190,74 @@ node _verify_charm.mjs --no-visual           # 跳过像素回归，不需要单
 ```
 
 改默认打开哪个 tab：`_build_charm.py` 顶部的 `DEFAULT_SLUG`（验证脚本从产物的 `data-default` 属性读，不必同步改）。
+
+---
+
+## 克隆之后：拉丁版直接能重建，中文版要先自备字体
+
+仓库收了四个产物与全部构建输入，但**没收中文字体原件**（287 MB，且是第三方字体，
+各自从上游取更合适）。所以：
+
+| | 克隆后能否重建 | 缺什么 |
+|---|---|---|
+| `charm-preview.html` / `charm-components.html` | **能**，`python3 _build_charm.py --all` 即可 | — |
+| `charm-preview-cjk.html` / `charm-preview-cjk-gb.html` | 不能，但**产物本身在仓库里，直接用没问题** | 两套中文字体原件 |
+
+（拉丁版可重建这一条是实测的：把三个脚本 + 四个 `_files/` 目录 + `_charm_fonts.json`
+复制到空目录当作新克隆跑 `--all`，产出与仓库已提交的版本逐字节一致。）
+
+### 要重建中文版，补三步
+
+**第一步，放字体原件。** 目录名与文件名必须与下面一致——`_make_cjk_fonts.py` 是按
+字面量路径找的，缺哪个就报哪个的错，不会静默跳过：
+
+```
+NotoSansCJK-Woff2/                 思源黑体 SC，woff2，仅需这 5 个字重
+    NotoSansSC-Thin.woff2  Regular  Medium  Bold  Black
+SarasaMonoSC-TTF-1.0.36/           等距更纱黑体 SC，TTF，仅需这 3 个字重
+    SarasaMonoSC-Regular.ttf  SemiBold  Bold
+```
+
+本仓库产物用的版本（字体 name 表里读出来的，照此取版本可复现同样的字节）：
+
+| 字体 | 版本（读自 name 表） | 上游 | 许可 |
+|---|---|---|---|
+| Noto Sans SC | 2.004，Adobe hotconv 构建 | Google Fonts 的 **Noto Sans SC**（上游项目 `notofonts/noto-cjk`） | OFL |
+| 等距更纱黑体 SC | 1.0.36 | `be5invis/Sarasa-Gothic` 的 release，取 `SarasaMonoSC-TTF-1.0.36` | OFL |
+
+⚠ 认准字族名是 **`Noto Sans SC`**、字重叫 Thin/Regular/Medium/Bold/Black——这是 Google Fonts
+那一支的命名。`notofonts/noto-cjk` 仓库里同一批字体叫 `Noto Sans CJK SC`、文件名形如
+`NotoSansCJKsc-Regular.otf`，取回来还得改名并转 woff2 才能被脚本认出。
+
+两者都是 OFL，可自由再分发；本仓库不收只是因为体积，不是许可问题。
+更纱黑体的 release 里含 10 个字面（带斜体），**只有上面 3 个会被用到**，其余可不下载。
+思源那 7 个字重里 Light / DemiLight 同样用不到。
+
+**第二步，生成字体包。** 全量约 2 分钟（要把 3 个 24 MB 的 TTF 转成 woff2），
+子集约 45 秒。两个包互不依赖，只要中文版就只跑对应那一条：
+
+```bash
+python3 _make_cjk_fonts.py            # → _charm_fonts_cjk.json     72 MB
+python3 _make_cjk_fonts.py --gb2312   # → _charm_fonts_cjk_gb.json  15 MB
+```
+
+子集那条会读 `charm-preview.html` 来兜底取「产物里在用的字符」，所以**要先有拉丁版产物**
+（克隆下来就有；若删过，先跑一次 `python3 _build_charm.py`）。
+
+**第三步，构建。**
+
+```bash
+python3 _build_charm.py --fonts=cjk      # → charm-preview-cjk.html     72.8 MB
+python3 _build_charm.py --fonts=cjk-gb   # → charm-preview-cjk-gb.html  16.0 MB
+```
+
+思源那 5 个字面是 woff2 原样收下，字节必然一致；更纱那 3 个要经 fontTools + brotli
+转换/子集化，**同版本工具链才会得到同样的字节**。所以 `cmp` 与仓库产物一致是好消息
+（字体版本与工具链都对上了），不一致也未必是错——先看字体 name 表的版本号对不对，
+再看 `pip show fonttools brotli`。本仓库产物用的是 fontTools 4.61.1。
+
+### 只想要中文字体，不想重建
+
+`python3 _make_cjk_fonts.py --export` 把包里的更纱黑体解回独立 `.woff2`
+（→ `SarasaMonoSC-Woff2/`，全量 3 个字重共 25 MB），供别的项目直接 `@font-face` 引用；
+加 `--gb2312` 则导子集版（约 1.5 MB/字重）。这一步只做 base64 解码，不重跑转换。
