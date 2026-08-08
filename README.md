@@ -22,9 +22,7 @@
 | **产物** | `charm-preview.html` | **唯一要拷走的东西**，四页合集 |
 | | `charm-components.html` | 组件库页的单页版（上一轮的交付物），兼作像素基线 |
 | | `charm-single-{marketing,application,ecommerce}.html` | 纯构建中间产物，只给像素回归当对照，`--all` 可随时重生 |
-| | `charm-preview-cjk.html` | 中文字体版（72.8 MB），字体换成思源黑体 + 更纱黑体，其余完全相同 |
-| | `charm-preview-cjk-gb.html` | 同上的 GB2312 常用字子集版（16.0 MB），生僻字回退系统字体 |
-| | `charm-preview-cjk-gb-zh.html` | **设计试验台**（16.0 MB）：子集版 + 设计层 + 中文文案，设计改动只在这里验证 |
+| | `charm-preview-cjk*.html` | 中文版三个产物（16–72.8 MB），**不入库**，本地按需重建（见「克隆之后」） |
 | | `_shot_*.png` | 每次跑验证都会覆盖的截图记录 |
 | **工具** | `_build_charm.py` | 构建脚本，约 1700 行 |
 | | `_verify_charm.mjs` | 验证脚本，129 项（含像素回归） |
@@ -237,13 +235,17 @@ node _verify_charm.mjs --no-visual           # 跳过像素回归，不需要单
 
 ## 克隆之后：拉丁版直接能重建，中文版要先自备字体
 
-仓库收了四个产物与全部构建输入，但**没收中文字体原件**（287 MB，且是第三方字体，
-各自从上游取更合适）。所以：
+仓库收了拉丁版产物与全部构建输入，但**中文字体原件（287 MB）与中文版三个产物都不入库**。
+
+中文产物不入库的理由不是「不重要」，而是代价与收益不成比例：它们体积的 96% 是内嵌字体的
+base64，二进制且已压缩，git 既不 diff 也不增量存储；而它们又是**频繁重建**的——尤其
+`charm-preview-cjk-gb-zh.html` 那个设计试验台，每做一次设计实验就重生一次，跟踪的话每次
+提交都在历史里再压一份 12 MB，且永久留存。重建成本反而很低（字体在手，两条命令）。所以：
 
 | | 克隆后能否重建 | 缺什么 |
 |---|---|---|
 | `charm-preview.html` / `charm-components.html` | **能**，`python3 _build_charm.py --all` 即可 | — |
-| `charm-preview-cjk.html` / `charm-preview-cjk-gb.html` | 不能，但**产物本身在仓库里，直接用没问题** | 两套中文字体原件 |
+| 中文版三个产物（`charm-preview-cjk*.html`） | 不能——三者都**不入库**，需自备字体后重建 | 两套中文字体原件 |
 
 （拉丁版可重建这一条是实测的：把三个脚本 + 四个 `_files/` 目录 + `_charm_fonts.json`
 复制到空目录当作新克隆跑 `--all`，产出与仓库已提交的版本逐字节一致。）
