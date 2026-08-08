@@ -24,10 +24,14 @@
 | | `charm-single-{marketing,application,ecommerce}.html` | 纯构建中间产物，只给像素回归当对照，`--all` 可随时重生 |
 | | `charm-preview-cjk.html` | 中文字体版（72.8 MB），字体换成思源黑体 + 更纱黑体，其余完全相同 |
 | | `charm-preview-cjk-gb.html` | 同上的 GB2312 常用字子集版（16.0 MB），生僻字回退系统字体 |
+| | `charm-preview-cjk-gb-zh.html` | **设计试验台**（16.0 MB）：子集版 + 设计层 + 中文文案，设计改动只在这里验证 |
 | | `_shot_*.png` | 每次跑验证都会覆盖的截图记录 |
 | **工具** | `_build_charm.py` | 构建脚本，约 1700 行 |
 | | `_verify_charm.mjs` | 验证脚本，129 项（含像素回归） |
 | | `_make_cjk_fonts.py` | 生成中文字体包：收 Noto 的 woff2，把更纱黑体的 TTF 转成 woff2 |
+| | `_ds_zh.py` | **设计层**：zh 产物专用的令牌 / 色板 / 组件改动 |
+| | `_localize_zh.py` | **内容层**：zh 产物专用的中文文案 |
+| | `_build_zh.py` | 编排设计层 + 内容层，产出 `charm-preview-cjk-gb-zh.html` |
 | | `_charm_fonts.json` | 预先下载的 woff2（base64），构建时内嵌 |
 | | `_charm_fonts_cjk.json` | 中文字体包（72 MB 全量 CJK），`_make_cjk_fonts.py` 产出 |
 | | `_charm_fonts_cjk_gb.json` | 中文字体包（15 MB GB2312 子集），`--gb2312` 产出 |
@@ -111,6 +115,41 @@ CSS 合并顺序不可颠倒：`@font-face(内嵌) → 4309 令牌+reset → 1mf
 
 **`.hero-pattern` / `.shero-pattern` 引用的 `hero-pattern-swirl.svg` 四目录皆无**，只删掉那一条 `background-image`，保留 opacity/mask。不自造替代纹理——那是设计资产，猜错比没有更糟。
 
+**设计上的试验一律不进复刻层，单独分一层只改 zh 那一个产物。** 那五个复刻产物的价值，
+在于「与原站一致」这一**可验证**的性质——像素回归、逐字节比对都以此为前提；设计改动一旦
+混进去，这些性质就全废了。所以设计与内容的改动都落在 zh 产物上，它是试验台：
+
+```
+_build_charm.py   复刻层   四页 → 五个产物，忠实复刻，不含任何设计改动
+_ds_zh.py         设计层   令牌 / 色板 / 组件      ┐ 只作用于
+_localize_zh.py   内容层   文案                   ┘ charm-preview-cjk-gb-zh.html
+_build_zh.py      编排     cjk-gb 产物 → 设计层 → 内容层 → zh 产物
+```
+
+顺序是设计层先、内容层后：设计层加进来的色块标签（`info` / `warning-soft`）是设计令牌名，
+本就该保持英文，不该被内容层翻译。加一条新的设计改动 = 往 `_ds_zh.py` 的 `LAYERS`
+里加一个 `Patch`，每个 Patch 自带命中数断言——这条规矩是从复刻层继承的。
+
+设计层目前做了两件事，都是**照既有规律推的，不是另挑一套**：
+
+- **新增蓝色状态色族 info。** 原站只有 success / danger / warning 三族。先量三族既有的
+  HSL 关系——strong 一律是 base 的 `L−9`（实测 −7.8 / −9.2 / −10.8），soft 一律落在
+  `L≈95`、S 降到 ~68——再照这套关系在 hue 212 上推出
+  `#287ee2 / #1a68c1 / #eaf2fb`，另给一个 `info-medium`（danger / warning 有
+  medium，success 没有，这里给全）。这样新族与三族同一手感。
+- **补上 `warning-soft`。** `--warning-soft:#fff6df` 这个令牌原本就存在，只是原站色板漏了
+  展示，导致 warning 只有 base 与 strong、与 success / danger 的三色不齐。现在四族各三色。
+
+两条实现约束：色板里每个 hex 都由 `token_value()` 从**产物自己的 CSS** 读出后生成，
+不存在手抄副本；设计层出口断言 `ds__swatch / ds__chip` 各 26（22 原有 + warning-soft
++ info ×3），色板再被改动会立刻报错。令牌注入的是 `</style>` **之前**（落在样式块内），
+不是插在它后面。
+
+⚠ 一个发现：原站**已有** `.ds__alert--info` 变体，但它借用的是品牌红
+`--ds-brand-soft`——设计系统里有个 info 状态，却因为没有蓝色令牌而套了品牌色。
+设计层只补了色族本身，**未改动该变体的样式**；要让它真的变蓝，需要加
+`--ds-info-soft` / `--ds-info-fg` 并覆盖那条规则。
+
 **换字体只改三个令牌值，一条页面 CSS 规则都不碰。** 四页的字体栈形如
 `var(--font-inter), "Inter", ui-sans-serif, …`——内嵌字体占的永远是第一顺位那个令牌，
 所以 `FontPack` 只需给出 `--font-inter` / `--font-display` / `--font-fragment-mono` 三个值。
@@ -148,6 +187,8 @@ GB2312 子集版 16.0 MB，收录 6763 常用汉字 + 682 符号，生僻字/繁
 4. 每个 `<svg>` 内部的 id 都加了页前缀。**⚠ 这顺带修掉了原页面的一个 bug**：E-commerce 页的 `chBg1`/`chBg7` 各被定义了两次，导致其中 2 个商品图取到了别人的渐变。改名后各自独立，因此这两张图与原站有可见色差——是修正，不是回归。
 5. `hero-pattern-swirl.svg` 不在保存件里（见上）。
 6. application 的 recharts 容器已修复为跟随容器缩放（见上）。
+7. **Status hues 色板有两处改动**（见下方「关键决策」）：补上原站漏展示的
+   `warning-soft`，并新增一个蓝色状态色族 `info`。
 
 需要 Chrome/Edge 119+、Safari 16.4+、Firefox 128+（用到 `color-mix()`、`rgb(from …)` 与 `:has()`）。
 
@@ -184,6 +225,7 @@ python3 _make_cjk_fonts.py --gb2312          # GB2312 子集字体包
 python3 _build_charm.py --fonts=cjk          # 中文字体版 charm-preview-cjk.html
 python3 _build_charm.py --fonts=cjk-gb       # 中文子集版 charm-preview-cjk-gb.html
 python3 _make_cjk_fonts.py --export          # 把包里的更纱黑体解回独立 woff2（不必重跑转换）
+python3 _build_zh.py                         # 设计层 + 内容层 → charm-preview-cjk-gb-zh.html
 
 NODE_PATH=<装了 puppeteer-core 的 node_modules> node _verify_charm.mjs
 node _verify_charm.mjs --no-visual           # 跳过像素回归，不需要单页产物
