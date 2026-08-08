@@ -634,6 +634,7 @@ PAGE_COMPONENTS = PageSpec(
     expect_class_counts=(
         ("ds__cat", 8), ("ds__block", 37), ("ds__alert", 4),
         ("ds__acc-item", 3), ("ds__acc-panel", 3), ("ds__menu-item", 3),
+        ("ds__swatch", 22), ("ds__chip", 22),
     ),
 )
 
