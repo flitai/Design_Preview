@@ -2,9 +2,9 @@
 # 其余一律不进版本库——要么体积大、要么是第三方原件、要么跑一次构建就能重来。
 
 # ==================================================== 字体包与字体原件
-# 字体包（_charm_fonts*.json）是 base64 后的 woff2，本质是二进制：
+# 中文字体包是 base64 后的全量 CJK woff2（15 / 72 MB），本质是二进制：
 # git 既不压缩也不 diff，改一次就多存一份全量。字体原件同理，从上游各自取。
-_charm_fonts.json
+# 拉丁字体包 _charm_fonts.json 是例外：132 KB，且缺它连拉丁版都构建不出来。
 _charm_fonts_cjk.json
 _charm_fonts_cjk_gb.json
 NotoSansCJK-Woff2/
@@ -16,11 +16,16 @@ SarasaMonoSC-Woff2/
 #   push 时会收到 large file 警告；它 96% 的体积是内嵌字体字节，git 无法增量存储，
 #   每改一次字体就在历史里多压一份 73 MB。
 
-# ==================================================== 构建输入：四页浏览器保存件
-# 约 10.6 MB、230 多个 Next.js chunk，是 typeui.sh 的第三方产物，不是本项目的源。
-# 来源 URL 与各页 sha256 记在 README 与产物顶部的说明块里。
-Charm Design Skill File _ TypeUI*.html
-Charm Design Skill File _ TypeUI*_files/
+# ==================================================== 构建输入
+# 四个 _files/ 目录是构建的真正输入（9.6 MB），收；缺它们克隆下来跑不了构建。
+# 顶层那四个同名 .html 反而不收：构建器读的是 _files/ 目录**里面**的
+# components.html / marketing.html / application.html / ecommerce.html，
+# 顶层这四个（约 800 KB）从头到尾没被读过。实测把它们排除后，
+# 模拟克隆构建出的产物与已提交的逐字节一致。
+Charm Design Skill File _ TypeUI.html
+Charm Design Skill File _ TypeUI1.html
+Charm Design Skill File _ TypeUI2.html
+Charm Design Skill File _ TypeUI3.html
 
 # ==================================================== 构建中间产物
 # 单页版只给 _verify_charm.mjs 当像素回归的对照组，`--all` 随时重生。
