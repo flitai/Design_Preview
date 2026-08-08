@@ -1,0 +1,37 @@
+# 本仓库只收两样东西：可双击离线打开的 HTML 交付物，以及产出它的脚本与文档。
+# 其余一律不进版本库——要么体积大、要么是第三方原件、要么跑一次构建就能重来。
+
+# ==================================================== 字体包与字体原件
+# 字体包（_charm_fonts*.json）是 base64 后的 woff2，本质是二进制：
+# git 既不压缩也不 diff，改一次就多存一份全量。字体原件同理，从上游各自取。
+_charm_fonts.json
+_charm_fonts_cjk.json
+_charm_fonts_cjk_gb.json
+NotoSansCJK-Woff2/
+SarasaMonoSC-TTF-1.0.36/
+SarasaMonoSC-Woff2/
+
+# 中文版两个产物是交付物，照收（见下方「收什么」）。
+# ⚠ charm-preview-cjk.html 72.8 MB，超过 GitHub 的 50 MB 警告线（100 MB 才是硬限制），
+#   push 时会收到 large file 警告；它 96% 的体积是内嵌字体字节，git 无法增量存储，
+#   每改一次字体就在历史里多压一份 73 MB。
+
+# ==================================================== 构建输入：四页浏览器保存件
+# 约 10.6 MB、230 多个 Next.js chunk，是 typeui.sh 的第三方产物，不是本项目的源。
+# 来源 URL 与各页 sha256 记在 README 与产物顶部的说明块里。
+Charm Design Skill File _ TypeUI*.html
+Charm Design Skill File _ TypeUI*_files/
+
+# ==================================================== 构建中间产物
+# 单页版只给 _verify_charm.mjs 当像素回归的对照组，`--all` 随时重生。
+# （charm-components.html 例外：它本身是可单独打开的交付物，保留。）
+charm-single-*.html
+
+# 验证脚本每次运行都覆盖的截图，以及像素回归失败时导出的人工比对图
+_shot_*.png
+_diff_*.png
+
+# ==================================================== 杂项
+__pycache__/
+*.pyc
+.DS_Store
