@@ -6,6 +6,15 @@
 
 底部居中一个悬浮切换器四选一，默认打开 Marketing。
 
+在它之外还有四个同源产物，都是同一套构建器出的，**不入库、本地按需重建**（见「仓库为什么这么瘦」）：
+
+| 产物 | 体积 | 是什么 |
+|---|---|---|
+| `charm-preview-cjk.html` | 72.8 MB | 字体换成思源黑体 + 更纱黑体，全量 CJK 覆盖 |
+| `charm-preview-cjk-gb.html` | 16.0 MB | 同上，字形按 GB2312 子集化（6763 常用汉字） |
+| `charm-preview-cjk-gb-zh.html` | 16.0 MB | **设计试验台**：子集版 + 设计层 + 中文文案，设计改动只在这里验证 |
+| `charm-preview-cjk-gb-zh-dark.html` | 16.0 MB | 试验台的**深色配色版**：同一份内容，配色由明亮版按 OKLCH+APCA 推导（见「关键决策」） |
+
 ```
 产物构成（710 KB）
   <style>    219 KB   ← 其中内嵌 woff2 约 131 KB（Inter / DM Sans / Fragment Mono 的 latin 子集）
@@ -17,25 +26,34 @@
 
 ## 目录里都有什么
 
-| | 文件 | 说明 |
-|---|---|---|
-| **产物** | `charm-preview.html` | **唯一要拷走的东西**，四页合集 |
-| | `charm-components.html` | 组件库页的单页版（上一轮的交付物），兼作像素基线 |
-| | `charm-single-{marketing,application,ecommerce}.html` | 纯构建中间产物，只给像素回归当对照，`--all` 可随时重生 |
-| | `charm-preview-cjk*.html` | 中文版三个产物（16–72.8 MB），**不入库**，本地按需重建（见「克隆之后」） |
-| | `_shot_*.png` | 每次跑验证都会覆盖的截图记录 |
-| **工具** | `_build_charm.py` | 构建脚本，约 1700 行 |
-| | `_verify_charm.mjs` | 验证脚本，129 项（含像素回归） |
-| | `_make_cjk_fonts.py` | 生成中文字体包：收 Noto 的 woff2，把更纱黑体的 TTF 转成 woff2 |
-| | `_ds_zh.py` | **设计层**：zh 产物专用的令牌 / 色板 / 组件改动 |
-| | `_localize_zh.py` | **内容层**：zh 产物专用的中文文案 |
-| | `_build_zh.py` | 编排设计层 + 内容层，产出 `charm-preview-cjk-gb-zh.html` |
-| | `_charm_fonts.json` | 预先下载的 woff2（base64），构建时内嵌 |
-| | `_charm_fonts_cjk.json` | 中文字体包（72 MB 全量 CJK），`_make_cjk_fonts.py` 产出 |
-| | `_charm_fonts_cjk_gb.json` | 中文字体包（15 MB GB2312 子集），`--gb2312` 产出 |
-| | `SarasaMonoSC-Woff2/` | 更纱黑体转换后的独立 woff2（全量，3 个字重），`--export` 产出，供别的项目引用 |
-| **源** | `NotoSansCJK-Woff2/` + `SarasaMonoSC-TTF-1.0.36/` | 中文字体原件，只有重建字体包时才用到 |
-| **源** | `Charm Design Skill File _ TypeUI*.html` + 四个 `..._files/` 目录 | 浏览器保存件，约 10 MB，**只有重建时才用到** |
+「入库」一列表示 `git clone` 能否直接拿到。仓库只收**小而稳定**的东西：源码、
+构建输入、拉丁版产物，合计约 10 MB；一切大块头（中文字体原件、字体包、中文版产物）
+都在本地按需生成——理由见下方「仓库为什么这么瘦」。
+
+| | 文件 | 入库 | 说明 |
+|---|---|---|---|
+| **产物** | `charm-preview.html` | ✅ | **唯一要拷走的东西**，四页合集，710 KB |
+| | `charm-components.html` | ✅ | 组件库页的单页版，兼作像素基线 |
+| | `charm-single-{marketing,application,ecommerce}.html` | — | 纯构建中间产物，只给像素回归当对照，`--all` 随时重生 |
+| | `charm-preview-cjk.html` | — | 中文全量 CJK 版，72.8 MB |
+| | `charm-preview-cjk-gb.html` | — | 中文 GB2312 子集版，16.0 MB |
+| | `charm-preview-cjk-gb-zh.html` | — | **设计试验台**：子集版 + 设计层 + 中文文案，16.0 MB |
+| | `charm-preview-cjk-gb-zh-dark.html` | — | 试验台的深色配色版，16.0 MB |
+| | `_shot_*.png` | — | 每次跑验证都会覆盖的截图记录 |
+| **工具** | `_build_charm.py` | ✅ | **复刻层**，约 1700 行 |
+| | `_verify_charm.mjs` | ✅ | 验证脚本，129 项（含像素回归） |
+| | `_make_cjk_fonts.py` | ✅ | 生成中文字体包：收 Noto 的 woff2，把更纱黑体的 TTF 转成 woff2 |
+| | `_theme_dark.py` | ✅ | **深色层**：明亮版 → 深色配色，OKLCH+APCA 推导 + 三级映射，只作用于 `--dark` 产物 |
+| | `_ds_zh.py` | ✅ | **设计层**：zh 产物专用的令牌 / 色板 / 组件改动 |
+| | `_localize_zh.py` | ✅ | **内容层**：zh 产物专用的中文文案 |
+| | `_build_zh.py` | ✅ | 编排（深色层 +）设计层 + 内容层 → zh 产物，`--dark` 出深色版 |
+| **字体包** | `_charm_fonts.json` | ✅ | 拉丁 woff2（base64），132 KB；缺它连拉丁版都构建不出来 |
+| | `_charm_fonts_cjk.json` | — | 全量 CJK，72 MB，`_make_cjk_fonts.py` 产出 |
+| | `_charm_fonts_cjk_gb.json` | — | GB2312 子集，15 MB，`--gb2312` 产出 |
+| | `SarasaMonoSC-Woff2/` | — | 更纱黑体的独立 woff2（3 字重共 25 MB），`--export` 产出，供别的项目引用 |
+| **源** | 四个 `Charm Design Skill File _ TypeUI*_files/` 目录 | ✅ | 浏览器保存件的资产，9.0 MB，构建的真正输入 |
+| | 顶层四个同名 `.html` | — | 构建器读的是 `_files/` **里面**的同名文件，顶层这四个从未被读过 |
+| | `NotoSansCJK-Woff2/` + `SarasaMonoSC-TTF-1.0.36/` | — | 中文字体原件，287 MB，只有重建字体包时才用到 |
 
 ---
 
@@ -119,34 +137,73 @@ CSS 合并顺序不可颠倒：`@font-face(内嵌) → 4309 令牌+reset → 1mf
 
 ```
 _build_charm.py   复刻层   四页 → 五个产物，忠实复刻，不含任何设计改动
-_ds_zh.py         设计层   令牌 / 色板 / 组件      ┐ 只作用于
-_localize_zh.py   内容层   文案                   ┘ charm-preview-cjk-gb-zh.html
-_build_zh.py      编排     cjk-gb 产物 → 设计层 → 内容层 → zh 产物
+_theme_dark.py    深色层   整版配色推导            ┐ 只作用于 --dark 那一个产物
+_ds_zh.py         设计层   令牌 / 色板 / 组件      ┐ 只作用于两个 zh 产物
+_localize_zh.py   内容层   文案                   ┘
+_build_zh.py      编排     cjk-gb 产物 → (深色层) → 设计层 → (深色层后段) → 内容层
 ```
 
 顺序是设计层先、内容层后：设计层加进来的色块标签（`info` / `warning-soft`）是设计令牌名，
-本就该保持英文，不该被内容层翻译。加一条新的设计改动 = 往 `_ds_zh.py` 的 `LAYERS`
-里加一个 `Patch`，每个 Patch 自带命中数断言——这条规矩是从复刻层继承的。
+本就该保持英文，不该被内容层翻译。加一条新的设计改动 = 往 `_ds_zh.py` 的
+`build_layers()` 里加一个 `Patch`，每个 Patch 自带命中数断言——这条规矩是从复刻层继承的。
 
-设计层目前做了两件事，都是**照既有规律推的，不是另挑一套**：
+设计层目前做了三件事，都是**照既有规律推的，不是另挑一套**：
 
 - **新增蓝色状态色族 info。** 原站只有 success / danger / warning 三族。先量三族既有的
   HSL 关系——strong 一律是 base 的 `L−9`（实测 −7.8 / −9.2 / −10.8），soft 一律落在
   `L≈95`、S 降到 ~68——再照这套关系在 hue 212 上推出
   `#287ee2 / #1a68c1 / #eaf2fb`，另给一个 `info-medium`（danger / warning 有
   medium，success 没有，这里给全）。这样新族与三族同一手感。
-- **补上 `warning-soft`。** `--warning-soft:#fff6df` 这个令牌原本就存在，只是原站色板漏了
-  展示，导致 warning 只有 base 与 strong、与 success / danger 的三色不齐。现在四族各三色。
+- **补上 `warning-soft`，状态色板改成一族一行。** `--warning-soft:#fff6df` 这个令牌原本
+  就存在，只是原站色板漏了展示，导致 warning 只有 base 与 strong、与 success / danger 的
+  三色不齐。现在四族各三色，且每族独占一个网格（容器同宽，各行的列天然对齐），
+  不再被 auto-fill 折行切得七零八落。
+- **新增「文字颜色」色板。** 原站色板展示了品牌、表面、状态，唯独没有「文字用了哪些
+  颜色」。这一块**从产物自己身上数出来**：CSS 里每条 `color:` 声明逐层解开 var() 链求到
+  字面值，再加上 SVG `<text>` 的 fill=；按语义分组、组内由深到浅，没有令牌的裸字面值
+  标注「无令牌」。CSS 一改色板自动跟着变，不存在「文档说 16 种、实际 19 种」这种走样。
 
 两条实现约束：色板里每个 hex 都由 `token_value()` 从**产物自己的 CSS** 读出后生成，
-不存在手抄副本；设计层出口断言 `ds__swatch / ds__chip` 各 26（22 原有 + warning-soft
-+ info ×3），色板再被改动会立刻报错。令牌注入的是 `</style>` **之前**（落在样式块内），
-不是插在它后面。
+不存在手抄副本；设计层出口断言 `ds__swatch / ds__chip` 各 26 + 文字色板条数
+（明亮版 19、深色版 22），色板再被改动会立刻报错。令牌注入的是 `</style>` **之前**
+（落在样式块内），不是插在它后面。
 
 ⚠ 一个发现：原站**已有** `.ds__alert--info` 变体，但它借用的是品牌红
 `--ds-brand-soft`——设计系统里有个 info 状态，却因为没有蓝色令牌而套了品牌色。
 设计层只补了色族本身，**未改动该变体的样式**；要让它真的变蓝，需要加
 `--ds-info-soft` / `--ds-info-fg` 并覆盖那条规则。
+
+**深色版不是把明亮版减光，是整版从明亮版算出来（`_theme_dark.py` → `--dark` 产物）。**
+原站没有任何深色定义（三个被引用的 CSS 里 `.dark` / `prefers-color-scheme` /
+`[data-theme]` 全部 0 命中），必须从零推一套。推导不在 HSL 里做——HSL 的 L 与感知明度
+无关（`#ffa211` 与 `#287ee2` 的 HSL-L 只差 1 个点，OKLab-L 差近 20 个点）；空间用
+**OKLCH**（感知均匀、hue-linear，改明度色相不漂），对比度用 **APCA**（W3C 草案 0.1.9，
+WCAG 2.x 对深底浅字系统性高估，APCA 是唯一给出可信读数的模型）。核心是「墨即纸」：
+深色版的 `--page` 直接锚定明亮版的 `--heading` `#1c1917`，`--heading` 由等 Lc 解出
+`#faf3ee`——不用纯白不是品味，是模型算出来的（`#ffffff` on `#1c1917` 的 Lc=106.6 过冲
+且落在散光糊边区间，等 Lc 解恰好停在 `#faf3ee`）。三条规则：**面**保相对 page 的
+ΔL ×1.30（CIECAM16 暗环绕下感知对比约降 24%）；**线**方向翻转（明亮版边框比面暗、
+深色版必须比面亮），ΔL 锚在**各自坐的面**上等量搬运（×1.00：暗环绕 ×1.30 与光渗
+×0.77 相抵）；**墨**走等 Lc 移植。**APCA 只用于文字**——它是可读性模型不是可辨识模型，
+实测拿它定 1px 描边会把 `--border` 推到亮得发白的 `#52514f`。出厂值是评审过的定稿表，
+构建期用规则**重算全表**并断言逐通道差 ≤1/255（OKLab 逆变换在 8-bit 取整边界上，
+不同实现会向不同方向翻，钉量化步才可复现）；真正逐字节钉死的是 **APCA 审计**：
+八对组合的深色 Lc 与明亮版逐项差 ≤0.5。唯一的刻意妥协是品牌前景：严格等 Lc 会把
+`--fg-brand` 的彩度从 0.171 掉到 0.104（珊瑚红退成鲭鱼粉），设彩度下限 C≥0.13 取
+`#f4897f`，拿 Lc 换彩度（67.5→53.7），依据 Helmholtz–Kohlrausch——高彩度前景的视觉
+明度高于其亮度，APCA 不建模此项。映射必须是「角色×上下文」**三级**而非一张值表，
+反例都是产物里数出来的：`#fff` 同时是 `--card`（变深）与 `--white`（保白）；`#a8a29e`
+同时是 `--border-strong`（线）与 `--fg-disabled`（墨）；`#1c1917` 在色板上是 heading、
+在商品颜色选择器上是「Black」这个商品色（恒等）；`#ffe9c1` 在 `:root` 是 warning-medium、
+在 ecommerce 插画里是暖光（恒等——插画只暗化纸与结构，不动彩色内容，「浅底上的淡黄」
+于是变成「暗底上的暖光」）。var() 引用还有一处延伸：`--brand-soft` 被图表当**线**用
+（次要系列、圆环轨道、图例点）时，深色 soft 是与卡片同明度的徽章底面，一画就消失，
+这几处换成按线规则单独推导的 `#4b2d2b`（ΔL 与明亮版逐位对齐）。外壳切换器翻成**亮玻璃**
+——这不是推翻「深色玻璃一眼可辨」的不变量，是守住它的**本意**：外壳与被预览页面永远
+反相，浅色页配深壳、深色页配亮壳。国旗 SVG 与外壳原段整段挖出保护、映射完原样放回；
+body 映射是单趟合并正则——映射的输出值（如 `#1c1917`）同时也是输入键，多趟会把输出再
+当输入二次映射。最强回归信号：深色层不碰明亮路径，`python3 _build_zh.py` 重建的明亮版
+与改动前**逐字节相同**（`cmp` 实测过）。
 
 **换字体只改三个令牌值，一条页面 CSS 规则都不碰。** 四页的字体栈形如
 `var(--font-inter), "Inter", ui-sans-serif, …`——内嵌字体占的永远是第一顺位那个令牌，
@@ -185,8 +242,15 @@ GB2312 子集版 16.0 MB，收录 6763 常用汉字 + 682 符号，生僻字/繁
 4. 每个 `<svg>` 内部的 id 都加了页前缀。**⚠ 这顺带修掉了原页面的一个 bug**：E-commerce 页的 `chBg1`/`chBg7` 各被定义了两次，导致其中 2 个商品图取到了别人的渐变。改名后各自独立，因此这两张图与原站有可见色差——是修正，不是回归。
 5. `hero-pattern-swirl.svg` 不在保存件里（见上）。
 6. application 的 recharts 容器已修复为跟随容器缩放（见上）。
-7. **Status hues 色板有两处改动**（见下方「关键决策」）：补上原站漏展示的
-   `warning-soft`，并新增一个蓝色状态色族 `info`。
+以上 6 条对**所有产物**都成立——它们是复刻本身的边界。
+
+设计上的改动（补 `warning-soft`、新增蓝色状态色族 `info`、文字色板）**只存在于
+`charm-preview-cjk-gb-zh.html` 与其深色版这两个试验台产物**，其余产物是忠实复刻，
+不含任何设计改动；分层与理由见「关键决策」。深色版另有三条自己的差异：明亮位图
+（marketing 的 11 张头像与照片）像素未动、只加了一条非破坏性压暗滤镜
+`brightness(.92) saturate(.96)`（Material / Apple 深色规范的通行做法）；面积渐变的
+顶部 stop-opacity 统一 ×4/3（同一 alpha 在暗环绕下感知更弱，是补偿不是加戏）；
+四个浮层遮罩统一为 `#000000b3`（明亮版四处各不相同）。
 
 需要 Chrome/Edge 119+、Safari 16.4+、Firefox 128+（用到 `color-mix()`、`rgb(from …)` 与 `:has()`）。
 
@@ -222,8 +286,10 @@ python3 _make_cjk_fonts.py                   # 全量 CJK 字体包（转 3 个 
 python3 _make_cjk_fonts.py --gb2312          # GB2312 子集字体包
 python3 _build_charm.py --fonts=cjk          # 中文字体版 charm-preview-cjk.html
 python3 _build_charm.py --fonts=cjk-gb       # 中文子集版 charm-preview-cjk-gb.html
+python3 _build_zh.py                         # 设计层 + 内容层 → charm-preview-cjk-gb-zh.html（依赖上一条）
+python3 _build_zh.py --dark                  # 深色层 + 设计层 + 内容层 → charm-preview-cjk-gb-zh-dark.html
+
 python3 _make_cjk_fonts.py --export          # 把包里的更纱黑体解回独立 woff2（不必重跑转换）
-python3 _build_zh.py                         # 设计层 + 内容层 → charm-preview-cjk-gb-zh.html
 
 NODE_PATH=<装了 puppeteer-core 的 node_modules> node _verify_charm.mjs
 node _verify_charm.mjs --no-visual           # 跳过像素回归，不需要单页产物
@@ -233,14 +299,27 @@ node _verify_charm.mjs --no-visual           # 跳过像素回归，不需要单
 
 ---
 
-## 克隆之后：拉丁版直接能重建，中文版要先自备字体
+## 仓库为什么这么瘦：克隆 10 MB，中文版本地重建
 
 仓库收了拉丁版产物与全部构建输入，但**中文字体原件（287 MB）与中文版三个产物都不入库**。
 
-中文产物不入库的理由不是「不重要」，而是代价与收益不成比例：它们体积的 96% 是内嵌字体的
-base64，二进制且已压缩，git 既不 diff 也不增量存储；而它们又是**频繁重建**的——尤其
-`charm-preview-cjk-gb-zh.html` 那个设计试验台，每做一次设计实验就重生一次，跟踪的话每次
-提交都在历史里再压一份 12 MB，且永久留存。重建成本反而很低（字体在手，两条命令）。所以：
+不入库的理由不是「不重要」，而是 git 存它们的代价与收益完全不成比例：
+
+- 体积的 **96% 是内嵌字体的 base64**——二进制、且已压缩过，git 既不 diff 也不增量存储，
+  每存一次就是一份全量；
+- 它们是**频繁重建**的。尤其 `charm-preview-cjk-gb-zh.html` 那个设计试验台，每做一次设计
+  实验就重生一次；跟踪的话每次提交都往历史里再压一份 12 MB，**且永久留存**，十次实验就是
+  120 MB，而且删不掉——除非重写历史；
+- 重建成本反而很低：字体原件在手，跑两条命令即可。
+
+代价对比很直白：三个中文产物入库时 `.git` 是 354 MB、克隆约 80 MB；移出后 `.git` 1.2 MB、
+克隆约 10 MB。同一套源码，同样能产出全部产物。
+
+（顺带一提，`charm-preview-cjk.html` 单文件 72.8 MB，还会触发 GitHub 的 50 MB 警告线；
+Git LFS 能治这一条，但会给克隆方引入 git-lfs 依赖，且网页 Download ZIP 只会拿到指针文件
+——对一个「拷走单文件就能用」的项目反而更糟，所以没采用。）
+
+所以：
 
 | | 克隆后能否重建 | 缺什么 |
 |---|---|---|
@@ -262,7 +341,7 @@ SarasaMonoSC-TTF-1.0.36/           等距更纱黑体 SC，TTF，仅需这 3 个
     SarasaMonoSC-Regular.ttf  SemiBold  Bold
 ```
 
-本仓库产物用的版本（字体 name 表里读出来的，照此取版本可复现同样的字节）：
+本项目产物用的版本（从字体 name 表里读出来的，照此取版本可复现同样的字节）：
 
 | 字体 | 版本（读自 name 表） | 上游 | 许可 |
 |---|---|---|---|
@@ -291,14 +370,20 @@ python3 _make_cjk_fonts.py --gb2312   # → _charm_fonts_cjk_gb.json  15 MB
 **第三步，构建。**
 
 ```bash
-python3 _build_charm.py --fonts=cjk      # → charm-preview-cjk.html     72.8 MB
-python3 _build_charm.py --fonts=cjk-gb   # → charm-preview-cjk-gb.html  16.0 MB
+python3 _build_charm.py --fonts=cjk      # → charm-preview-cjk.html      72.8 MB
+python3 _build_charm.py --fonts=cjk-gb   # → charm-preview-cjk-gb.html   16.0 MB
+python3 _build_zh.py                     # → charm-preview-cjk-gb-zh.html 16.0 MB（设计试验台）
+python3 _build_zh.py --dark              # → charm-preview-cjk-gb-zh-dark.html 16.0 MB（深色版）
 ```
 
-思源那 5 个字面是 woff2 原样收下，字节必然一致；更纱那 3 个要经 fontTools + brotli
-转换/子集化，**同版本工具链才会得到同样的字节**。所以 `cmp` 与仓库产物一致是好消息
-（字体版本与工具链都对上了），不一致也未必是错——先看字体 name 表的版本号对不对，
-再看 `pip show fonttools brotli`。本仓库产物用的是 fontTools 4.61.1。
+后两条要先有 `charm-preview-cjk-gb.html`：设计试验台是在子集版之上再过设计层与内容层，
+深色版在设计层之前先过深色层（见「关键决策」的分层说明）。
+
+**关于字节可复现**：思源那 5 个字面是 woff2 原样收下，字节必然一致；更纱那 3 个要经
+fontTools + brotli 转换/子集化，**同版本工具链才得到同样的字节**（本项目用的是
+fontTools 4.61.1）。中文产物不入库，所以没有「仓库版本」可供 `cmp`——真要确认字体取对了，
+就比对**拉丁版**：`python3 _build_charm.py --all` 后 `charm-preview.html` 必须与仓库里的
+逐字节一致（它不含中文字体，与工具链版本无关，是干净的对照）。
 
 ### 只想要中文字体，不想重建
 

@@ -12,7 +12,7 @@ SarasaMonoSC-TTF-1.0.36/
 SarasaMonoSC-Woff2/
 
 # ==================================================== 中文版产物
-# 三个都不入库。理由不是「不重要」，而是 git 存它们的代价与收益完全不成比例：
+# 四个都不入库。理由不是「不重要」，而是 git 存它们的代价与收益完全不成比例：
 #   · 体积的 96% 是内嵌字体的 base64，二进制且已压缩过，git 既不 diff 也不增量存储；
 #   · 它们是**频繁重建**的——尤其 -zh 那个设计试验台，每做一次设计实验就重生一次，
 #     跟踪的话每次提交都在历史里再压一份 12 MB，十次实验就是 120 MB，且永久留存；
@@ -22,9 +22,11 @@ SarasaMonoSC-Woff2/
 # 重建：python3 _make_cjk_fonts.py [--gb2312]
 #       python3 _build_charm.py --fonts=cjk[-gb]
 #       python3 _build_zh.py            # 设计试验台
+#       python3 _build_zh.py --dark     # 试验台的深色配色版
 charm-preview-cjk.html
 charm-preview-cjk-gb.html
 charm-preview-cjk-gb-zh.html
+charm-preview-cjk-gb-zh-dark.html
 
 # ==================================================== 构建输入
 # 四个 _files/ 目录是构建的真正输入（9.6 MB），收；缺它们克隆下来跑不了构建。

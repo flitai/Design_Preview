@@ -26,6 +26,7 @@ python3 _build_charm.py --fonts=cjk-gb     # GB2312 子集版 → charm-preview-
 python3 _make_cjk_fonts.py [--gb2312]      # 重建字体包（全量约 2 分钟，子集约 45 秒）
 python3 _make_cjk_fonts.py --export        # 包里的更纱黑体 → SarasaMonoSC-Woff2/ 独立文件
 python3 _build_zh.py                       # 设计层+内容层 → charm-preview-cjk-gb-zh.html
+python3 _build_zh.py --dark                # 深色层+设计层+内容层 → charm-preview-cjk-gb-zh-dark.html
 
 NODE_PATH=<装了 puppeteer-core 的 node_modules> node _verify_charm.mjs
 node _verify_charm.mjs --no-visual         # 跳过 Phase 5，不需要单页产物
@@ -81,10 +82,14 @@ slug 只有 `marketing` `application` `ecommerce` `components` 四个。
 
 **设计上的改动不要动 `_build_charm.py`。** 那五个复刻产物的价值在于「与原站一致」这一
 可验证的性质（像素回归、逐字节比对都以此为前提），设计试验混进去就全废了。分层是：
-`_build_charm.py` 复刻层 → `_ds_zh.py` 设计层 → `_localize_zh.py` 内容层 →
-`_build_zh.py` 编排，**后两层只作用于 `charm-preview-cjk-gb-zh.html`** 这一个试验台。
-加设计改动 = 往 `_ds_zh.py` 的 `LAYERS` 加一个带命中数断言的 `Patch`；加文案 = 往
-`_localize_zh.py` 的 `TABLE` 加一条（命中数要照产物数出来，别估）。
+`_build_charm.py` 复刻层 → `_theme_dark.py` 深色层（仅 `--dark`）→ `_ds_zh.py` 设计层 →
+`_localize_zh.py` 内容层 → `_build_zh.py` 编排，**设计/内容/深色层只作用于
+`charm-preview-cjk-gb-zh.html` 与其深色版**这两个试验台产物。
+加设计改动 = 往 `_ds_zh.py` 的 `build_layers()` 加一个带命中数断言的 `Patch`；加文案 = 往
+`_localize_zh.py` 的 `TABLE` 加一条（命中数要照产物数出来，别估）。深色配色改动 = 改
+`_theme_dark.py` 的 `EXPECTED` 定稿表与对应映射表——推导复算断言（≤1/255）与 APCA 审计
+（|Δ|≤0.5）会强制新值仍从明亮版按规则推得出来；改完必须重跑 `python3 _build_zh.py` 并与
+改前产物 `cmp`，证明明亮路径逐字节不变。
 
 **换字体走 `FontPack`，不要去改页面 CSS。** 四页的字体栈形如
 `var(--font-inter), "Inter", …`，内嵌字体占第一顺位令牌，所以一套字体 = 三个令牌值
