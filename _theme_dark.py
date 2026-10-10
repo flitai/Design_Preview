@@ -26,13 +26,17 @@
     明亮版的墨。
   · 线：明亮版边框比所坐的面暗，深色版必须比面亮（中性族唯一的方向翻转）；
     ΔL 锚在各自坐的面上等量搬运（×1.00:暗环绕 ×1.30 与光渗 ×0.77 相抵）。
-  · 墨：等 Lc 移植——解出深色 L,使 |Lc（深字，深底）| == |Lc（明字，明底）|。
+  · 墨：等 Lc 移植——解出深色 L,使 |Lc（深字，深底）| == |Lc（明字，明底）|；
+    再按所坐的面兜底：在 page、card 等每一种面上都不低于明亮版同一面（封顶 Lc 90），
+    不够就提亮（多座面规则，见 INK_SEATS 处的注释）。
 
 外加两条修正：中性色彩度 ×1.615（Hunt 效应：同一彩度在暗底上显得更灰）；
 C<0.010 的色相角是 8-bit 量化噪声，归到 ink 的 56°（#1c1917 的 H）。
 状态族：soft/medium 是有色深底，H 不变、C 锁 0.045/0.062、L=page+0.030/+0.055
 （0.045 是上界：再高 warning 就顶到 sRGB 色域边界）；strong 由等 Lc 在各自深色
-soft 底上解出，C、H 不变，越界通道直接裁剪。
+soft 底上解出，再对 page、card 兜底，C、H 不变，越出色域时降彩度（不裁通道，保色相）。
+文字一律不用基色：基色恒等只给按钮面与图形，拿基色写的字换同族前景档；插画里的
+小字（头像缩写）按墨处理，在深色下实际所坐的底上等 Lc。
 
 出厂值与复算断言
 ----------------
@@ -123,17 +127,33 @@ def hex_lch(h):
     return L, math.hypot(a, b), math.degrees(math.atan2(b, a)) % 360
 
 
-def _lch_rgb(L, C, H):
-    """OKLCH → sRGB 浮点；越出色域的通道直接裁剪（naive clip）。"""
+def _lch_lin(L, C, H):
+    """OKLCH → 线性 sRGB，不裁剪（越界通道 <0 或 >1，供色域判定用）。"""
     a = C * math.cos(math.radians(H))
     b = C * math.sin(math.radians(H))
     l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
     m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
     s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3
-    return tuple(_unlin(max(0.0, min(1.0, x))) for x in (
-        +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
-        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
-        -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s))
+    return (+4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+            -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+            -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s)
+
+
+def _lch_rgb(L, C, H):
+    """OKLCH → sRGB 浮点；越出色域的通道直接裁剪（naive clip）。"""
+    return tuple(_unlin(max(0.0, min(1.0, x))) for x in _lch_lin(L, C, H))
+
+
+def lch_cmax(L, H):
+    """给定 L、H，sRGB 色域内能取到的最大彩度（二分到色域边界）。"""
+    lo, hi = 0.0, 0.4
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        if all(-1e-9 <= x <= 1 + 1e-9 for x in _lch_lin(L, mid, H)):
+            lo = mid
+        else:
+            hi = mid
+    return lo
 
 
 def lch_hex(L, C, H):
@@ -182,20 +202,23 @@ EXPECTED = {
     "border-subtle": "#332f2c", "border": "#363230", "border-medium": "#45413f",
     "border-strong": "#736a64", "border-on-band": "#1b1d10",
     "gridline": "#2c2826",          # marketing 图表网格线 stroke #f5f4f1（非令牌），同线规则
-    # 中性 —— 墨（等 Lc 移植）
-    "fg-disabled": "#9e958e", "body-subtle": "#cebfb5", "body": "#e1d7cf",
+    # 中性 —— 墨（page 上等 Lc，再按所坐的面兜底；前三个由 card 约束提亮，heading 由 page）
+    "fg-disabled": "#aaa09a", "body-subtle": "#d8c9be", "body": "#eae0d8",
     "heading": "#faf3ee",
     # 品牌 · 珊瑚红（基色不动；前景是设计定稿，拿 Lc 换彩度）
     "brand-soft": "#331716", "brand-softer": "#2a1817",
     "fg-brand": "#f4897f",          # * C=0.132≥0.13,Lc 53.7
     "fg-brand-strong": "#ffaa9a",   # * C=0.104≥0.10,Lc 67.2
-    # 状态 · 四族（soft: L=page+.030 C=.045;medium: L=page+.055 C=.062;strong: 等 Lc）
-    "success-strong": "#51c77b", "success-soft": "#092719",
-    "danger-strong": "#ffa59b", "danger-soft": "#331719", "danger-medium": "#40181b",
-    "warning-strong": "#f8aa5a", "warning-soft": "#291f04",
+    # 状态 · 四族（soft: L=page+.030 C=.045;medium: L=page+.055 C=.062;
+    # strong: 在各自 soft 上等 Lc，再对 page / card 兜底——四个都由 card 约束提亮）
+    "success-strong": "#5acf82", "success-soft": "#092719",
+    "danger-strong": "#ffbeb7", "danger-soft": "#331719", "danger-medium": "#40181b",
+    "warning-strong": "#ffb469", "warning-soft": "#291f04",
     "warning-medium": "#382605",    # * C=0.062 在暗黄区顶出色域，上提 L 保蓝通道
-    "fg-warning": "#f8aa5a",        # 与 warning-strong 同值：两者由同一 Lc 目标解出
-    "info-strong": "#81ccff", "info-soft": "#0f2235", "info-medium": "#0d2844",
+    "fg-warning": "#ffb469",        # 与 warning-strong 同值：两者由同一 Lc 目标解出
+    "info-strong": "#b5d5ff", "info-soft": "#0f2235", "info-medium": "#0d2844",
+    # 插画头像缩写（同色 0.15 圆上的同色字）：在深色下实际所坐的底上等 Lc
+    "avatar-1ebd66": "#00a857", "avatar-8e40cc": "#d4abff", "avatar-fc5f35": "#ff734f",
     # 次要系列线：brand-soft/-softer 被图表当**线**用（次要系列、圆环轨道、图例点）。
     # 深色的 soft 令牌是为「徽章底」设计的面，与 card 的 ΔL≈0.002,线一画就消失；
     # 按线规则单独推导（ΔL 锚在 card、方向翻转），C 沿用深色 soft 族的 0.045/0.030。
@@ -208,20 +231,98 @@ EXPECTED = {
 # 明亮版各族的非令牌字面值（令牌值 verify 时从产物 CSS 读，这两个只在插画/图表里）
 LIGHT_EFEDEB, LIGHT_GRIDLINE = "#efedeb", "#f5f4f1"
 
-# APCA 审计表：深色版感知对比必须是明亮版的逐项复刻（|Δ|≤0.5），
-# 品牌前景两项除外——那是拿 Lc 换彩度的定稿，钉死绝对值。
-AUDIT_PAIRS = (
-    ("heading", "page"), ("body", "page"), ("body-subtle", "page"),
-    ("fg-disabled", "page"), ("success-strong", "success-soft"),
-    ("danger-strong", "danger-soft"), ("fg-warning", "warning-soft"),
-    ("info-strong", "info-soft"),
-)
+# 墨与状态字：多座面兜底。原规则只在 page（状态字是各自的 soft）上等 Lc 移植；
+# 但文字大量坐在卡片上，而深色卡片比 page 亮——明亮版里卡片是对比最好的面，深色版里
+# 却成了最差的面，卡片上的次要文字因此掉了约 6 Lc（渲染审计逐元素实测）。现规则：
+# 先在基准面上等 Lc，再对它实际所坐的每一种面兜底——深色 Lc 不得低于明亮版同一面
+# （封顶 LC_CAP），不够就提亮。一个值管不住明暗方向相反的两种面，只能取「处处不低于」：
+# 基准面上因此可能比明亮版略高，这是不退化的代价，审计要求至少在一个面上取等。
+LC_CAP = 90.0             # APCA 正文推荐值；再高在深底上只增加光渗，不增加可读性
+LIGHT_HOVER = "#e9e9ec"   # 明亮版没有 --hover-fill，悬停底是 .ds 链的回退值（verify 时从 CSS 核对）
+INKS = ("fg-disabled", "body-subtle", "body", "heading")
+INK_SEATS = ("page", "card", "card-soft", "control-fill", "band", "hover-fill")
+STRONG_SEATS = {"success-strong": ("success-soft", "page", "card"),
+                "danger-strong": ("danger-soft", "page", "card"),
+                "fg-warning": ("warning-soft", "page", "card"),
+                "info-strong": ("info-soft", "page", "card")}
+# 插画头像：同色圆（opacity 0.15）上压同色缩写。按墨处理：在它深色下实际所坐的
+# 「同色压深卡片」上等 Lc 移植（apply 里断言这三个圆在场且 opacity 就是 0.15）。
+AVATAR_ALPHA = 0.15
+AVATARS = ("#1ebd66", "#8e40cc", "#fc5f35")
 BRAND_FG_LC = {"fg-brand": 53.7, "fg-brand-strong": 67.2}
+BRAND_FG_FLOOR = {"fg-brand": 0.13, "fg-brand-strong": 0.10}   # 品牌前景的彩度下限
+
+# 有色深底（soft / medium）：（L 相对深色 page 的增量，C），H 取明亮版。
+# brand-softer 的常数不同（L=page+.016，C=.030）。
+SOFT_RULE = {"brand-soft": (.030, .045), "brand-softer": (.016, .030),
+             "success-soft": (.030, .045), "danger-soft": (.030, .045),
+             "warning-soft": (.030, .045), "danger-medium": (.055, .062)}
+# 次要系列线：（取 L 与 H 的明亮令牌，C）。线规则：ΔL 锚在 card、方向翻转。
+SERIES_RULE = {"series-soft": ("brand-soft", .045), "series-softer": ("brand-softer", .030)}
+
+
+def dark_soft(name, light_hex):
+    """有色深底的深色值（SOFT_RULE）。品牌层换品牌色时复用同一条规则。"""
+    dl, cv = SOFT_RULE[name]
+    return lch_hex(hex_lch(INK)[0] + dl, cv, hex_lch(light_hex)[2])
+
+
+def dark_series(name, light_hex):
+    """次要系列线的深色值（SERIES_RULE），light_hex 是它所取的明亮 soft 令牌的值。"""
+    L, _, H = hex_lch(light_hex)
+    return lch_hex(hex_lch(EXPECTED["card"])[0] + (1.0 - L), SERIES_RULE[name][1], H)
 
 
 def _norm6(h):
     h = h.lower()
     return "#" + "".join(c * 2 for c in h[1:]) if len(h) == 4 else h
+
+
+def _over(fg_hex, alpha, bg_hex):
+    """sRGB 空间的 alpha 叠加（与浏览器合成同一空间）。"""
+    return _rgb_hex(tuple(alpha * f + (1 - alpha) * b
+                          for f, b in zip(_hex_rgb(fg_hex), _hex_rgb(bg_hex))))
+
+
+def _solve_capped(target, C, H, bg_hex):
+    """深底亮字：解 L 使 |Lc| 达到 target。C 超出色域时降到 Cmax——保色相，不裁通道。"""
+    bg = _hex_rgb(bg_hex)
+    lo, hi = hex_lch(bg_hex)[0] + 0.01, 0.999
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if abs(_apca(_lch_rgb(mid, min(C, lch_cmax(mid, H)), H), bg)) < target:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def seated(light_hex, C, H, seats):
+    """多座面兜底求解。seats = [(明亮面, 深色面)]，第一个是基准面（目标不封顶）。
+    返回（深色值, 约束面序号）。"""
+    targets = [abs(apca(light_hex, ls)) if i == 0 else min(abs(apca(light_hex, ls)), LC_CAP)
+               for i, (ls, _) in enumerate(seats)]
+    Ls = [_solve_capped(t, C, H, ds) for t, (_, ds) in zip(targets, seats)]
+    i = max(range(len(Ls)), key=Ls.__getitem__)
+    return lch_hex(Ls[i], min(C, lch_cmax(Ls[i], H)), H), i
+
+
+def seat_pairs(light, seats, dark=None):
+    """座面令牌名 → [(明亮面, 深色面)]。light 是明亮令牌表；hover-fill 的明亮值取 LIGHT_HOVER。"""
+    dark = dark or EXPECTED
+    return [(LIGHT_HOVER if s == "hover-fill" else light[s], dark[s]) for s in seats]
+
+
+def audit_seated(name, light_hex, dark_hex, seats, light, dark=None):
+    """不退化审计：每个座面上深色 Lc ≥ 明亮 Lc（封顶）− 0.5，且至少一个面取等。"""
+    tight = False
+    for k, (s, (ls, ds)) in enumerate(zip(seats, seat_pairs(light, seats, dark))):
+        want = abs(apca(light_hex, ls))
+        want = want if k == 0 else min(want, LC_CAP)
+        got = abs(apca(dark_hex, ds))
+        need(got >= want - 0.5, f"审计失败 {name}/{s}：明亮 Lc={want:.1f} 深色 Lc={got:.1f}")
+        tight |= abs(got - want) <= 0.5
+    need(tight, f"{name} 在任何座面上都没有取等：被无端提亮了")
 
 
 def _neutral_ch(C, H, ink_c, ink_h):
@@ -264,6 +365,9 @@ def verify_derivation(css):
     need(abs(apca(INK, lt["page"]) - 99.5) < 0.1 and abs(apca("#ffffff", INK) + 106.6) < 0.1,
          "APCA 实现漂了：锚点 Lc 不等于 99.5 / -106.6")
 
+    m = re.search(r"--ds-hover:var\(--hover-fill,[^;]*?(#[0-9a-fA-F]{6})\)", css)
+    need(m and m.group(1).lower() == LIGHT_HOVER, f"明亮版悬停底不再是 {LIGHT_HOVER}，保存件可能变了")
+
     page_l = hex_lch(lt["page"])[0]
     bad = []
 
@@ -291,45 +395,50 @@ def verify_derivation(css):
         C2, H2 = _neutral_ch(C, H, ink_c, ink_h)
         check(n, lch_hex(hex_lch(seat_d)[0] + (hex_lch(seat_l)[0] - L), C2, H2))
     # 次要系列线（线规则，C 用深色 soft 族的常数，H 不变）
-    for n, light, cv in (("series-soft", lt["brand-soft"], .045),
-                         ("series-softer", lt["brand-softer"], .030)):
-        L, _, H = hex_lch(light)
-        check(n, lch_hex(hex_lch(EXPECTED["card"])[0] + (1.0 - L), cv, H))
-    # 墨
-    for n in ("fg-disabled", "body-subtle", "body", "heading"):
+    for n, (src, _) in SERIES_RULE.items():
+        check(n, dark_series(n, lt[src]))
+    # 墨：page 上等 Lc，再对所坐的每一种面兜底
+    seats_used = {}
+    for n in INKS:
         L, C, H = hex_lch(lt[n])
-        C2 = C * GAIN
-        H2 = H if C >= NOISE_C else ink_h
-        check(n, lch_hex(_solve_ink_L(abs(apca(lt[n], lt["page"])), C2, H2, INK), C2, H2))
+        v, i = seated(lt[n], C * GAIN, H if C >= NOISE_C else ink_h, seat_pairs(lt, INK_SEATS))
+        check(n, v)
+        seats_used[n] = INK_SEATS[i]
     # soft / medium（brand-softer 的常数不同：L=page+.016,C=.030）
-    for n, dl, cv in (("brand-soft", .030, .045), ("brand-softer", .016, .030),
-                      ("success-soft", .030, .045), ("danger-soft", .030, .045),
-                      ("warning-soft", .030, .045), ("danger-medium", .055, .062)):
-        check(n, lch_hex(ink_l + dl, cv, hex_lch(lt[n])[2]))
-    # strong:等 Lc 在深色 soft 上解，C/H 保持
-    for n, soft in (("success-strong", "success-soft"), ("danger-strong", "danger-soft")):
+    for n in SOFT_RULE:
+        check(n, dark_soft(n, lt[n]))
+    # 状态字：各自 soft 上等 Lc，再对 page、card 兜底，C/H 保持（越界降彩度，不裁通道）。
+    # fg-warning 与 warning-strong 同值，由 fg-warning 的目标解出。
+    for n, seats in STRONG_SEATS.items():
         _, C, H = hex_lch(lt[n])
-        t = abs(apca(lt[n], lt[soft]))
-        check(n, lch_hex(_solve_ink_L(t, C, H, EXPECTED[soft]), C, H))
-    # fg-warning 与 warning-strong 同值，由 fg-warning 的 Lc 目标解出
-    _, C, H = hex_lch(lt["fg-warning"])
-    t = abs(apca(lt["fg-warning"], lt["warning-soft"]))
-    check("fg-warning", lch_hex(_solve_ink_L(t, C, H, EXPECTED["warning-soft"]), C, H))
+        v, i = seated(lt[n], C, H, seat_pairs(lt, seats))
+        check(n, v)
+        seats_used[n] = seats[i]
     need(EXPECTED["warning-strong"] == EXPECTED["fg-warning"],
          "warning-strong 与 fg-warning 应同值（同一 Lc 目标）")
+    # 插画头像缩写：在「同色 0.15 压卡片」上等 Lc
+    for hx in AVATARS:
+        _, C, H = hex_lch(hx)
+        v, _ = seated(hx, C, H, [(_over(hx, AVATAR_ALPHA, lt["card"]),
+                                  _over(hx, AVATAR_ALPHA, EXPECTED["card"]))])
+        check("avatar-" + hx[1:], v)
     need(not bad, "推导与定稿表对不上（>1/255）：\n  " + "\n  ".join(bad))
     # 品牌底白字两版同值：--brand 恒等（ROOT_KEEP）+ 白字保白（TEXT_FILL），无需另行审计
 
-    # APCA 审计：深色版是明亮版感知对比的逐项复刻
-    for fg, bg in AUDIT_PAIRS:
-        lcl = abs(apca(lt[fg], lt[bg]))
-        lcd = abs(apca(EXPECTED[fg], EXPECTED[bg]))
-        need(abs(lcd - lcl) <= 0.5,
-             f"审计失败 {fg}/{bg}:light Lc={lcl:.1f} dark Lc={lcd:.1f}")
+    # 多座面审计：每个墨与状态字在所坐的每一种面上都不低于明亮版，且至少一面取等
+    for n in INKS:
+        audit_seated(n, lt[n], EXPECTED[n], INK_SEATS, lt)
+    for n, seats in STRONG_SEATS.items():
+        audit_seated(n, lt[n], EXPECTED[n], seats, lt)
+    for hx in AVATARS:
+        want = abs(apca(hx, _over(hx, AVATAR_ALPHA, lt["card"])))
+        got = abs(apca(EXPECTED["avatar-" + hx[1:]], _over(hx, AVATAR_ALPHA, EXPECTED["card"])))
+        need(abs(got - want) <= 0.5, f"头像 {hx}：明亮 Lc={want:.1f} 深色 Lc={got:.1f}")
+    verify_derivation.seats = seats_used
     for n, want in BRAND_FG_LC.items():
         got = abs(apca(EXPECTED[n], EXPECTED["page"]))
         need(abs(got - want) <= 0.2, f"{n} 的 Lc={got:.1f},定稿应为 {want}")
-        floor = 0.13 if n == "fg-brand" else 0.10
+        floor = BRAND_FG_FLOOR[n]
         need(hex_lch(EXPECTED[n])[1] >= floor, f"{n} 彩度跌破下限 {floor}")
         need(abs(hex_lch(EXPECTED[n])[2] - hex_lch(lt[n])[2]) % 360 <= 5,
              f"{n} 色相偏离明亮版超过 5°")
@@ -456,6 +565,19 @@ def css_patches():
         Patch("hero mock 内边", re.escape("#44190624"), "#ffffff1f", mode="replace"),
         Patch("mini-chip 底", re.escape("background:#eafbf1"), "background:" + E["success-soft"], mode="replace"),
         Patch("mini-chip 字", re.escape("color:#179c53"), "color:" + E["success-strong"], mode="replace"),
+        # 反色药丸：明亮版是「墨底白字」，墨在深色里翻亮后成了白字配近白底（Lc 0）。
+        # 改用 --tooltip（EXTRA_CSS 里声明，与图表提示同一个反色面），皮肤层可再锚定。
+        Patch("tooltip 反色底", re.escape("background:var(--ds-heading);color:var(--ds-white)"),
+              "background:var(--tooltip);color:var(--ds-white)", mode="replace"),
+        # 基色当文字：基色恒等是为按钮面与图形定的；拿来写字时走墨的规则，换同族前景档
+        Patch("危险菜单项文字", re.escape(".menu__item--danger,.menu__item--danger svg{color:var(--danger)}"),
+              ".menu__item--danger,.menu__item--danger svg{color:var(--danger-strong)}", mode="replace"),
+        Patch("引语大引号", re.escape(".testi-quote__mark{font-family:var(--font-display-stack);color:var(--brand)"),
+              ".testi-quote__mark{font-family:var(--font-display-stack);color:var(--fg-brand)", mode="replace"),
+        # .select 的下拉箭头是内嵌 SVG（data URI，颜色按 URL 编码写死为 body-subtle）。
+        # 图标跟随文字色：换成深色 body-subtle，否则深底上 Lc 只有 26。
+        Patch(".select 下拉箭头", re.escape("stroke='%2379716b'"),
+              "stroke='%23" + E["body-subtle"][1:] + "'", mode="replace"),
     ]
     return tuple(out)
 
@@ -475,7 +597,8 @@ TEXT_FILL = {  # <text> 的 fill=:墨
     "#b36a00": E["fg-warning"], "#179c53": E["success-strong"],
     "#c73737": E["danger-strong"],
     "#ffffff": _ID,             # 品牌红底上的白字，保白
-    "#1ebd66": _ID, "#8e40cc": _ID, "#fc5f35": _ID,     # 基色/点缀直标的文字
+    # 插画头像缩写：按墨处理，在深色下实际所坐的「同色 0.15 压卡片」上等 Lc
+    "#1ebd66": E["avatar-1ebd66"], "#8e40cc": E["avatar-8e40cc"], "#fc5f35": E["avatar-fc5f35"],
 }
 SHAPE_FILL = {  # 形状的 fill=:面（插画只暗化纸与结构，不动彩色内容）
     "#ffffff": E["card"],       # 插画里的卡片面
@@ -617,6 +740,18 @@ def var_patches():
     )
 
 
+# 插画（marketing 产品界面 mock）里拿品牌基色写的字与随文图标：基色恒等是为图形定的，
+# 字走墨的规则，换品牌前景档 var(--fg-brand)（品牌层换牌后自动跟随）。图表的数据线、
+# 仪表盘弧是图形，不在此列。字的锚点要求 fill 之后紧跟文字内容与 </text>，形状不会误中。
+TEXT_ROLE_PATCHES = (
+    Patch("插画品牌字", r'fill="var\(--brand\)"(?=>[^<]*</text>)', 'fill="var(--fg-brand)"',
+          count=5, mode="replace"),
+    Patch("插画随文图标", re.escape('<rect x="26" y="114" width="16" height="16" rx="5" '
+                                  'fill="none" stroke="var(--brand)" stroke-width="1.7">'),
+          '<rect x="26" y="114" width="16" height="16" rx="5" fill="none" '
+          'stroke="var(--fg-brand)" stroke-width="1.7">', mode="replace"),
+)
+
 # 面积渐变的顶部 stop:同一 alpha 在暗环绕下感知更弱，统一 ×4/3 补偿（是补偿不是加戏）
 OPACITY_PATCHES = (
     Patch("渐变补偿 .24", re.escape('stop-opacity="0.24"'), 'stop-opacity="0.32"', mode="replace"),
@@ -634,7 +769,7 @@ EXTRA_CSS = """
    外壳与被预览页面永远反相——浅色页配深玻璃、深色页配亮玻璃，
    「一眼可辨这是外壳」的不变量因此在深色页上仍然成立。
    覆写必须盖全全部态：漏掉 is-active:hover 会残留明亮版的 #f4f4f5 亮斑。*/
-:root{color-scheme:dark;--hover-fill:#2b2724}
+:root{color-scheme:dark;--hover-fill:#2b2724;--tooltip:#38322e}
 .pv-switch{border:1px solid #0000001f;background:#f5f2efd9}
 .pv-switch__btn{color:#1c1917cc}
 .pv-switch__btn:hover{background:#00000014;color:#1c1917}
@@ -651,9 +786,12 @@ NOTE = """  ⚠ 本文件在设计层之前还过了一道**深色层**(_theme_d
      · 配色由明亮版推导而非手调：OKLCH 空间 + APCA 对比度。面保相对 page 的
        ΔL（×1.30 暗环绕补偿），线翻转方向、ΔL 锚在所坐的面上等量搬运，
        墨走等 Lc 移植；深色版的纸（#1c1917）就是明亮版的墨。
-     · APCA 审计：八对组合的感知对比与明亮版逐项差 ≤0.5;品牌前景两项例外，
-       拿 Lc 换彩度（Helmholtz–Kohlrausch 依据），Lc 53.7 / 67.2。
-     · 品牌与状态基色、点缀色、插画暖光、商品颜色不动；明亮位图只加
+     · 文字在它所坐的每一种底色上都不低于明亮版（封顶 Lc 90）：墨与状态字先在
+       基准面上等 Lc，再对 card 等面兜底提亮；渲染审计逐元素比对，退化为 0。
+       品牌前景是唯一约定例外：拿 Lc 换彩度（Helmholtz–Kohlrausch 依据），Lc 53.7 / 67.2。
+     · 文字不用基色：危险菜单项、评价引号、插画里的品牌字与随文图标换同族前景档；
+       插画头像缩写在深色底上等 Lc 重新取色；组件页 tooltip 改用反色面 --tooltip。
+     · 品牌与状态基色（按钮面与图形）、点缀色、插画暖光、商品颜色不动；明亮位图只加
        非破坏性压暗滤镜（brightness .92 saturate .96），像素资产未动。
      · 图表次要系列线（brand-soft 作 stroke 与图例点）换用按线规则推导的
        专用值——深色 soft 是徽章底的面，与卡片同明度，画成线会消失。
@@ -713,6 +851,14 @@ def apply(html: str) -> str:
         body = p.apply(body)
     for p in var_patches():
         body = p.apply(body)
+    for p in TEXT_ROLE_PATCHES:
+        body = p.apply(body)
+    # 头像圆的 opacity 就是推导用的 AVATAR_ALPHA（规则与产物同出一处）
+    for hx in AVATARS:
+        n = len(re.findall(r'<circle\b[^>]*fill="' + hx + r'" opacity="' + str(AVATAR_ALPHA) + '"', body))
+        need(n == 1, f"头像圆 {hx}（opacity {AVATAR_ALPHA}）命中 {n} 处，期望 1")
+    for tok in ("hover-fill", "tooltip"):
+        need(f"--{tok}:{E[tok]}" in EXTRA_CSS, f"EXTRA_CSS 里的 --{tok} 与定稿 {E[tok]} 不一致")
 
     # 明亮版的中性值必须已从颜色位置上绝迹（在放回保护段之前查）
     gone = ("#f7f7f5", "#fbfaf9", "#f5f4f1", "#f1f2ea", "#e7e6e5", "#ebebe7",
@@ -721,9 +867,10 @@ def apply(html: str) -> str:
             "#e9e9ec", "#18181b", "#52525b", "#71717a", "#e4e4e7", "#f0f0f0",
             "#f0fdf4", "#15803d", "#fef2f2", "#b91c1c", "#fffbeb", "#b45309")
     for h in gone:
-        pat = re.escape(h) + r"(?![0-9a-fA-F])"
+        # data URI 里的 SVG 颜色按 URL 编码写成 %23rrggbb，两种写法都要查
+        pat = "(?:" + re.escape(h) + "|%23" + re.escape(h[1:]) + r")(?![0-9a-fA-F])"
         n = len(re.findall(pat, css))
-        need(n == 0, f"CSS 里仍残留明亮值 {h} ×{n}")
+        need(n == 0, f"CSS 里仍残留明亮值 {h} ×{n}（含 URL 编码写法）")
     # body 里 #d6d3d1/#57534e/#1c1917/#ffe9c1 等是内容色，允许在场；只查纯 UI 中性值
     for h in ("#f7f7f5", "#fbfaf9", "#efedeb", "#ebebe7", "#e6e8dd", "#eafbf1",
               "#fbebeb", "#fff6df", "#d98200", "#b36a00"):
@@ -746,27 +893,31 @@ def apply(html: str) -> str:
     need(n == 1, "没找到说明块的插入锚点")
 
     apply.stats = {"root": len(ROOT_MAP) + len(ROOT_DECL), "body": sum(counts.values()),
-                   "css": len(css_patches()), "series": sum(p.count for p in var_patches())}
+                   "css": len(css_patches()), "series": sum(p.count for p in var_patches()),
+                   "role": sum(p.count for p in TEXT_ROLE_PATCHES)}
     return out
 
 
 # 设计层 INFO_HUES 落地的明亮值 → 深色（base 恒等）。命中 = :root 注入 + 色板 chip/label。
-INFO_MAP = (("#1a68c1", "#81ccff", 3), ("#eaf2fb", "#0f2235", 3), ("#d4e4f7", "#0d2844", 1))
+_INFO = dict(_ds_zh.INFO_HUES)
+INFO_MAP = ((_INFO["info-strong"], E["info-strong"], 3), (_INFO["info-soft"], E["info-soft"], 3),
+            (_INFO["info-medium"], E["info-medium"], 1))
 
 
 def apply_post(html: str) -> str:
     """后段：设计层刚注入的 info 族由明亮常量而来，在此映射到深色。"""
-    # 深色值也复算一遍：strong 等 Lc 在深色 soft 上解，soft/medium 与其它三族同公式
-    _, C, H = hex_lch("#1a68c1")
-    t = abs(apca("#1a68c1", "#eaf2fb"))
+    # 深色值也复算一遍：strong 与其它三族同规则（soft 上等 Lc，page/card 兜底），soft/medium 同公式
+    light = {n: _norm6(v) for n, v, _ in ROOT_MAP} | {k: v for k, v in _INFO.items()}
+    _, C, H = hex_lch(_INFO["info-strong"])
     ink_l = hex_lch(INK)[0]
-    for name, derived in (("info-strong", lch_hex(_solve_ink_L(t, C, H, E["info-soft"]), C, H)),
-                          ("info-soft", lch_hex(ink_l + .030, .045, hex_lch("#eaf2fb")[2])),
-                          ("info-medium", lch_hex(ink_l + .055, .062, hex_lch("#d4e4f7")[2]))):
+    for name, derived in (("info-strong", seated(_INFO["info-strong"], C, H,
+                                                 seat_pairs(light, STRONG_SEATS["info-strong"]))[0]),
+                          ("info-soft", lch_hex(ink_l + .030, .045, hex_lch(_INFO["info-soft"])[2])),
+                          ("info-medium", lch_hex(ink_l + .055, .062, hex_lch(_INFO["info-medium"])[2]))):
         need(_drift(derived, E[name]) <= 1,
              f"info 推导与定稿不符：{name} {derived} vs {E[name]}")
 
-    need(html.count("#287ee2") == 3, "info 基色 #287ee2 应恰有 3 处（：root+chip+label）且恒等")
+    need(html.count(_INFO["info"]) == 3, f"info 基色 {_INFO['info']} 应恰有 3 处（:root+chip+label）且恒等")
     for light, dark, cnt in INFO_MAP:
         html, n = re.subn(re.escape(light) + r"(?![0-9a-fA-F])", dark, html)
         need(n == cnt, f"info 映射 {light}→{dark} 命中 {n} 处，期望 {cnt}")
@@ -779,7 +930,8 @@ def summary() -> str:
     post = getattr(apply_post, "hits", 0)
     return (f"深色层：{st.get('root', 0)} 条 :root 令牌就地改写，{st.get('css', 0)} 处 CSS "
             f"字面值，{st.get('body', 0)} 处 body 属性，{st.get('series', 0)} 处次要系列线，"
-            f"后段 info 族 {post} 处；APCA 审计 8 项 |Δ|≤0.5，"
+            f"{st.get('role', 0)} 处插画品牌字与图标换前景档，后段 info 族 {post} 处；"
+            f"墨与状态字多座面审计 {len(INKS) + len(STRONG_SEATS)} 项（处处不低于明亮版），"
             f"品牌前景 Lc 53.7/67.2（拿 Lc 换彩度）")
 
 

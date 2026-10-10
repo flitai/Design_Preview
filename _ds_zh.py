@@ -104,6 +104,16 @@ STATUS_FAMILIES = ("success", "danger", "warning", "info")
 
 STYLE_END = "</style>"          # 令牌追加在产物那唯一一段 <style> 的末尾
 
+# ============================================================ 改动三：标题字体栈思源黑体置首
+# 原站标题栈首位是 Circular Std / CircularXX TT——商业字体，不随产物分发。中文页上它若恰好
+# 装在看的人机器上，标题里的拉丁字母走 Circular、汉字回落思源黑体，同一行两套字形。
+# 把内嵌的思源黑体（var(--font-display)）挪到首位，其余后备原序保留；就地改写令牌本身，
+# 不在页面 CSS 里另加覆盖。
+DISPLAY_STACK_OLD = ('--font-display-stack:"Circular Std", "CircularXX TT", var(--font-display), '
+                     '"DM Sans", ui-sans-serif, sans-serif')
+DISPLAY_STACK_NEW = ('--font-display-stack:var(--font-display), "Circular Std", "CircularXX TT", '
+                     '"DM Sans", ui-sans-serif, sans-serif')
+
 
 def build_layers(css: str) -> tuple:
     """按产物当前的 CSS 生成本层的全部 Patch（hex 从 CSS 里读，故需先传入）。"""
@@ -130,6 +140,8 @@ def build_layers(css: str) -> tuple:
               mode="replace", count=1),
         # 整段换掉原来那一个网格。末尾原样带回 STATUS_TAIL——内容层要按原文翻译它，
         # 这里若改动一个字，内容层的命中数断言就会当场报错。
+        Patch("标题字体栈：思源黑体置首", re.escape(DISPLAY_STACK_OLD) + r"(?=[;}])",
+              DISPLAY_STACK_NEW, mode="replace"),
         Patch("状态色板：一族一行，补 warning-soft，加 info 族",
               re.escape(STATUS_HEAD) + r".*?" + re.escape(STATUS_TAIL),
               status_block, mode="replace", flags=re.S),
@@ -333,6 +345,8 @@ NOTE = """  ⚠ 本文件额外过了一道**设计系统层**（_ds_zh.py），
        自己身上数的：CSS 里每条 color: 声明逐层解开 var() 链求到字面值，再加上
        SVG <text> 的 fill=。CSS 一改色板自动跟着变，不会出现文档与实际不符。
        没有对应令牌的裸字面值会标注「无令牌」——它们是从色板里漏出去的。
+     · 标题字体栈改为思源黑体置首：原站首位 Circular Std 是商业字体、不随产物分发，
+       装了它的机器上标题会拉丁走 Circular、汉字回落思源，同一行两套字形。
 
 """
 
