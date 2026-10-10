@@ -11,9 +11,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 项目一句话
 
 把 typeui.sh 上 Charm 设计系统的四个预览页复刻成一个零外部依赖、双击即用的单文件 HTML
-（`charm-preview.html`）。源文件只有两个：[_build_charm.py](_build_charm.py)（构建，~1700 行）
-与 [_verify_charm.mjs](_verify_charm.mjs)（验证，129 项）。其余全是输入（保存件、字体 JSON）
-或产物（`charm-*.html`、`_shot_*.png`）。
+（`charm-preview.html`）。复刻本身只有两个源文件：[_build_charm.py](_build_charm.py)
+（构建，~1700 行）与 [_verify_charm.mjs](_verify_charm.mjs)（验证，129 项）。
+在它之外还有一条**试验台支线**（只作用于 zh 那五个产物，绝不回流复刻层）：
+[_make_cjk_fonts.py](_make_cjk_fonts.py) 造字体包，[_theme_dark.py](_theme_dark.py) 深色层、
+[_theme_console.py](_theme_console.py) 皮肤层、[_theme_brand.py](_theme_brand.py) 品牌层、[_ds_zh.py](_ds_zh.py) 设计层、
+[_localize_zh.py](_localize_zh.py) 内容层，由 [_build_zh.py](_build_zh.py) 编排。
+其余全是输入（保存件、字体 JSON、`ref/` 参考图）或产物（`charm-*.html`、`_shot_*.png`）。
 
 ## 常用命令
 
@@ -26,6 +30,12 @@ python3 _build_charm.py --fonts=cjk-gb     # GB2312 子集版 → charm-preview-
 python3 _make_cjk_fonts.py [--gb2312]      # 重建字体包（全量约 2 分钟，子集约 45 秒）
 python3 _make_cjk_fonts.py --export        # 包里的更纱黑体 → SarasaMonoSC-Woff2/ 独立文件
 python3 _build_zh.py                       # 设计层+内容层 → charm-preview-cjk-gb-zh.html
+python3 _build_zh.py --dark                # 深色层+设计层+内容层 → charm-preview-cjk-gb-zh-dark.html
+python3 _build_zh.py --console             # 深色层+皮肤层+设计层+内容层 → charm-preview-cjk-gb-zh-console.html
+python3 _build_zh.py --sim                 # 品牌层+设计层+内容层 → charm-preview-cjk-gb-zh-sim.html（蓝色品牌）
+python3 _build_zh.py --sim --dark          # 深色层+品牌层深色段+设计层+内容层 → charm-preview-cjk-gb-zh-sim-dark.html
+python3 _pack_sim.py                       # 上两者 → handoff/charm-sim-theme/ + .zip（交付给业务网页实现者）
+python3 _audit_contrast.py                 # 深色产物逐元素渲染对比度审计（直接调本机 Chrome），退化即 exit 1
 
 NODE_PATH=<装了 puppeteer-core 的 node_modules> node _verify_charm.mjs
 node _verify_charm.mjs --no-visual         # 跳过 Phase 5，不需要单页产物
@@ -81,10 +91,51 @@ slug 只有 `marketing` `application` `ecommerce` `components` 四个。
 
 **设计上的改动不要动 `_build_charm.py`。** 那五个复刻产物的价值在于「与原站一致」这一
 可验证的性质（像素回归、逐字节比对都以此为前提），设计试验混进去就全废了。分层是：
-`_build_charm.py` 复刻层 → `_ds_zh.py` 设计层 → `_localize_zh.py` 内容层 →
-`_build_zh.py` 编排，**后两层只作用于 `charm-preview-cjk-gb-zh.html`** 这一个试验台。
-加设计改动 = 往 `_ds_zh.py` 的 `LAYERS` 加一个带命中数断言的 `Patch`；加文案 = 往
-`_localize_zh.py` 的 `TABLE` 加一条（命中数要照产物数出来，别估）。
+`_build_charm.py` 复刻层 → `_theme_dark.py` 深色层（`--dark` / `--console`）→
+`_theme_console.py` 皮肤层（仅 `--console`）／`_theme_brand.py` 品牌层（仅 `--sim`，可叠 `--dark`）→
+`_ds_zh.py` 设计层 → `_localize_zh.py` 内容层 → `_build_zh.py` 编排，**设计/内容/深色/皮肤/
+品牌层只作用于 `charm-preview-cjk-gb-zh.html` 与其深色版、控制台皮肤版、工程蓝版及其深色版**
+这五个试验台产物。
+加设计改动 = 往 `_ds_zh.py` 的 `build_layers()` 加一个带命中数断言的 `Patch`；加文案 = 往
+`_localize_zh.py` 的 `TABLE` 加一条（命中数要照产物数出来，别估）。深色配色改动 = 改
+`_theme_dark.py` 的 `EXPECTED` 定稿表与对应映射表——推导复算断言（≤1/255）与多座面审计
+（墨与状态字在 `INK_SEATS` / `STRONG_SEATS` 的每一种面上都不低于明亮版，封顶 `LC_CAP`，且至少
+一面取等）会强制新值仍从明亮版按规则推得出来；改完必须重跑 `python3 _build_zh.py` 并与
+改前产物 `cmp`，证明明亮路径逐字节不变，**再跑 `python3 _audit_contrast.py`**——令牌层的审计
+看不见「文字实际坐在哪种底上」，tooltip 白字配近白底、卡片上的字变暗这类问题都是渲染审计
+抓出来的。品牌前景（拿 Lc 换彩度）是唯一约定例外；文字一律不准用基色（基色恒等只给按钮面与图形）。
+
+**皮肤层改动改 `_theme_console.py` 的 `EXPECTED_CONSOLE` 与三张映射表**（`ROOT_MAP` /
+`RADIUS_MAP` / `SHADOW_MAP`）。它不重推导，只把深色层已审计的关系整体再锚定一次：面/线/
+抬升平移到 `PAGE` 锚点、彩度归零，墨按深色层的多座面规则在冷面上重解；`verify_derivation()` 会强制
+新值仍从这两条规则推得出来（≤1/255），外加冷度（C<0.002）、多座面审计、序关系、
+保留族交叉审计与「输出值不与任何一版值域相交」。它的边界是**令牌 + 令牌在 body 里的
+镜像**：改了中性色或圆角令牌，components 页那 8 个色块对与 7 个圆角演示块必须同步改
+（`CHIP_MIRROR` / `RADIUS_MAP`），否则色板对自己撒谎。圆角演示块按令牌名锚整个单元，
+绝不按值替换——`r-xs` 的旧值 `4px` 恰是 `r-xl` 的新值。改完同样要 `cmp` 证明明亮与
+`--dark` 两条路径逐字节不变，并核对 `CENSUS_TOTAL/ADHOC` 这两个钉死值。
+
+**品牌层改动改 `_theme_brand.py` 的 `ANCHOR` 与 `EXPECTED_SIM`。** `ANCHOR`（`#1a66ff`）是
+设计指定的主色、钉死不推（取 DevTools 计算值，别从 Mac 截图读像素——截图带显示器 ICC 会偏）；其余七档从珊瑚红色阶按职能重推（≤1/255）：按钮面白字 Lc 整体平移到
+锚点、前景在 page 上等 Lc、浅色调保 L 与绝对 C，彩度按珊瑚各档对 brand 的比例换算到锚点。
+审计是求解 6 对 |Δ|≤0.5、按钮四档白字 Lc 严格递增（`.btn--primary` 渐变不倒挂）、派生 4 对
+不退化、色相偏离按 ab 平面距离 ≤0.002、状态三族色相 ≥90°、图表 `--teal` `--purple` ΔE_OK ≥0.15。
+换锚点后这些断言会逐条告诉你新色能不能用，别为了过构建去改阈值。info 族在设计层之后并入品牌
+色阶（`apply_post`），所以**改 `INFO_HUES` 会同时牵动品牌层**（并入命中数与档位断言）。
+`--sim --dark` 不改深色层：深色层按珊瑚跑完，`apply_dark` 再用深色层抽出的 `dark_soft()` /
+`dark_series()` / `BRAND_FG_LC` / `BRAND_FG_FLOOR` 把品牌族换成深色蓝（定稿表 `EXPECTED_SIM_DARK`）。
+所以**改深色层这几条规则或常数会同时牵动蓝色深色版**，两个深色版都要重建核对。
+`--sim` 不与 `--console` 叠加（皮肤层的品牌恒等断言按珊瑚写）。色域计算用
+`_theme_dark.lch_cmax`，不另写一份。改完同样要 `cmp` 证明另外三个 zh 产物逐字节不变。
+
+**交付包由 `_pack_sim.py` 生成，`handoff/` 不入库、不要手改。** 改了品牌层、深色层或模版内容后
+要重新打包。说明正文在 `_pack_sim_guide.html`，占位 `{{…}}` 由脚本填；令牌用途写在
+`COLOR_GROUPS` / `OTHER_GROUPS`，与真实令牌双向断言——新增或删除令牌必须同步改说明，否则打包失败。
+组件摘录按选择器取模版原文（`EXCERPTS`），顶层必须恰好一条。说明末尾的组件样例是组件页的
+原样搬运（声明式影子 DOM，明暗各一份）：DOM/样式/脚本都从模版取，断言 8 分区 38 块、样式在
+`SHELL_MARK` 处截断后不再有 `.ds` 规则、组件页脚本只用替身提供的三个 `document` 接口——组件页
+加了新分区、或脚本用了别的 `document` 接口，打包会失败，要同步改 `_pack_sim.py`。已发布的说明
+页面用 `handoff/_page/style-guide.html` 重新发布到同一地址。
 
 **换字体走 `FontPack`，不要去改页面 CSS。** 四页的字体栈形如
 `var(--font-inter), "Inter", …`，内嵌字体占第一顺位令牌，所以一套字体 = 三个令牌值

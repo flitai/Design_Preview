@@ -1,0 +1,462 @@
+<title>仿真蓝主题规范</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+/* 主题令牌：由 _pack_sim.py 填入 tokens/theme.css 的原文，页面自身只用这些令牌 */
+/*{{THEME_CSS}}*/
+
+/* 版式：左侧固定目录 + 右侧正文；窄屏单列 */
+:root { --gutter: clamp(16px, 4vw, 40px); }
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--page); color: var(--body); font-family: var(--font-sans-stack);
+  font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+  padding-inline: var(--gutter); padding-block: 0 96px; }
+a { color: var(--fg-brand); text-underline-offset: 3px; }
+code, pre { font-family: var(--font-mono-stack); }
+code { font-size: .875em; }
+h1, h2, h3 { color: var(--heading); font-family: var(--font-display-stack); font-weight: 700;
+  line-height: 1.3; text-wrap: balance; }
+h1 { font-size: clamp(32px, 5vw, 44px); letter-spacing: -.05em; margin: 0; }
+h2 { font-size: 28px; letter-spacing: -.04em; margin: 0 0 14px; }
+h3 { font-size: 18px; letter-spacing: -.01em; margin: 32px 0 10px; }
+p { margin: 0 0 12px; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+
+header.top { padding-block: 56px 32px; border-bottom: 1px solid var(--border-subtle);
+  display: grid; gap: 16px; }
+.eyebrow { font-family: var(--font-mono-stack); font-size: 12px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--body-subtle); display: flex; align-items: center; gap: 8px; margin: 0; }
+.eyebrow i { width: 8px; height: 8px; border-radius: var(--r-full); background: var(--brand); }
+.lead { font-size: 18px; color: var(--body-subtle); max-width: 62ch; margin: 0; }
+.meta { font-size: 12px; color: var(--fg-disabled); font-family: var(--font-mono-stack); margin: 0;
+  overflow-wrap: anywhere; }
+.switch { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--border);
+  border-radius: var(--r-full); background: var(--card); width: max-content; max-width: 100%; }
+.switch button { font: inherit; font-size: 13px; font-weight: 500; border: 0; background: none;
+  color: var(--body); padding: 6px 14px; border-radius: var(--r-full); cursor: pointer; }
+.switch button:hover { background: var(--hover-fill); color: var(--heading); }
+.switch button[aria-pressed="true"] { background: var(--brand); color: var(--white); }
+.switch button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.layout { display: grid; gap: 40px; padding-block: 40px; }
+@media (min-width: 1040px) { .layout { grid-template-columns: 200px minmax(0, 1fr); gap: 56px; } }
+nav.toc { font-size: 14px; }
+nav.toc ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px; }
+@media (min-width: 1040px) {
+  nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; }
+  nav.toc ul { display: grid; }
+}
+nav.toc a { color: var(--body-subtle); text-decoration: none; display: block; padding: 4px 10px;
+  border-radius: var(--r-md); }
+nav.toc a:hover { background: var(--hover-fill); color: var(--heading); }
+nav.toc a:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+main { min-width: 0; display: grid; gap: 72px; }
+section { min-width: 0; scroll-margin-top: 24px; }
+section > p, section > ul > li, .steps p { max-width: 72ch; }
+
+.tbl { overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--r-lg);
+  background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.5; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+thead th { font-size: 12px; letter-spacing: .04em; color: var(--body-subtle); font-weight: 500;
+  background: var(--card-soft); white-space: nowrap; }
+tbody tr:last-child > * { border-bottom: 0; }
+tbody th { font-weight: 500; color: var(--heading); white-space: nowrap; }
+td.c { white-space: nowrap; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.muted { color: var(--fg-disabled); }
+.sw { display: inline-block; width: 18px; height: 18px; border-radius: var(--r-xs);
+  border: 1px solid var(--border); vertical-align: -4px; margin-right: 8px; }
+code.val { color: var(--body); }
+code.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.pair { display: inline-block; padding: 3px 10px; border-radius: var(--r-md); font-weight: 500;
+  border: 1px solid var(--border-subtle); }
+
+pre { margin: 0; background: var(--control-fill); border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg); padding: 14px 16px; overflow-x: auto; font-size: 13px;
+  line-height: 1.6; color: var(--heading); }
+details { border: 1px solid var(--border-subtle); border-radius: var(--r-lg); background: var(--card); }
+details + details { margin-top: 8px; }
+details summary { cursor: pointer; padding: 10px 14px; font-weight: 500; color: var(--heading); }
+details summary:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-lg); }
+details pre { border: 0; border-top: 1px solid var(--border-subtle); border-radius: 0 0 var(--r-lg) var(--r-lg); }
+
+.note { background: var(--brand-softer); color: var(--fg-brand-strong);
+  border: 1px solid color-mix(in srgb, var(--brand-softer) 80%, currentColor);
+  border-radius: var(--r-md); padding: 12px 16px; font-size: 14px; max-width: 80ch; margin: 16px 0 0; }
+.note.warn { background: var(--warning-soft); color: var(--fg-warning);
+  border-color: color-mix(in srgb, var(--warning-soft) 80%, currentColor); }
+.note code { color: inherit; }
+
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 24px; }
+.steps > li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; }
+.steps > li::before { content: counter(s); width: 28px; height: 28px; border-radius: var(--r-full);
+  background: var(--brand-softer); color: var(--fg-brand-strong); font-weight: 600; font-size: 14px;
+  display: grid; place-items: center; }
+.steps > li > div { min-width: 0; display: grid; gap: 8px; }
+.steps b { color: var(--heading); }
+.codehead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.copy { font: inherit; font-size: 12px; font-weight: 500; color: var(--heading); background: var(--card);
+  border: 1px solid var(--border); border-radius: var(--r-full); padding: 4px 12px; cursor: pointer; }
+.copy:hover { background: var(--control-fill); }
+.copy:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.principles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); }
+.principles > div { background: var(--card); border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg); padding: 16px 18px; font-size: 15px; }
+.principles b { color: var(--heading); display: block; margin-bottom: 4px; font-size: 16px; }
+
+.check { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.check li { padding-left: 30px; position: relative; max-width: 80ch; }
+.check li::before { content: ""; position: absolute; left: 0; top: .3em; width: 16px; height: 16px;
+  border: 1.5px solid var(--border-strong); border-radius: var(--r-xs); }
+ul.plain { padding-left: 1.2em; margin: 0; display: grid; gap: 6px; }
+
+.spaces { display: grid; gap: 6px; background: var(--card); border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg); padding: 14px 16px; overflow-x: auto; }
+.sp { display: grid; grid-template-columns: 96px minmax(0, 384px) 52px; align-items: center; gap: 12px; font-size: 13px; }
+.sp .bar { height: 10px; background: var(--brand); border-radius: 2px; max-width: 100%; }
+.specimens { padding-block: 24px 0; display: grid; gap: 16px; }
+.specimens > p { max-width: 80ch; margin: 0; }
+.specimen { border: 1px solid var(--border-subtle); border-radius: var(--r-xl); overflow: hidden; }
+/* 明暗两份组件页各自原样，随本页主题只显示对应那份 */
+.specimen--dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .specimen--light { display: none; }
+  :root:not([data-theme="light"]) .specimen--dark { display: block; }
+}
+:root[data-theme="dark"] .specimen--light { display: none; }
+:root[data-theme="dark"] .specimen--dark { display: block; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+<header class="top">
+  <p class="eyebrow"><i></i>风格交付包 · 明亮 / 深色</p>
+  <h1>仿真蓝主题规范</h1>
+  <p class="lead">业务网页按这份规范和包里的两个模版，统一颜色、字体、圆角、阴影与组件。说明和 <code>theme.css</code> 里的数值都直接取自模版，三者保持一致。如果觉得某个值需要调整，请反馈给主题维护方统一修改并发布新版本，不要在业务代码里自行覆盖。</p>
+  <p class="meta">{{SOURCE}}</p>
+  <div class="switch" role="group" aria-label="本页主题">
+    <button type="button" id="th-system" data-set-theme="system" aria-pressed="true">跟随系统</button>
+    <button type="button" id="th-light" data-set-theme="light" aria-pressed="false">明亮</button>
+    <button type="button" id="th-dark" data-set-theme="dark" aria-pressed="false">深色</button>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc" aria-label="目录">
+  <ul>
+    <li><a href="#package">包里有什么</a></li>
+    <li><a href="#quickstart">三步接入</a></li>
+    <li><a href="#principles">设计原则</a></li>
+    <li><a href="#color">颜色</a></li>
+    <li><a href="#contrast">对比度</a></li>
+    <li><a href="#type">字体与字号</a></li>
+    <li><a href="#space">间距、圆角与阴影</a></li>
+    <li><a href="#components">组件规格</a></li>
+    <li><a href="#specimens">组件样例</a></li>
+    <li><a href="#dark">深色模式</a></li>
+    <li><a href="#migrate">改造现有页面</a></li>
+    <li><a href="#checklist">验收清单</a></li>
+    <li><a href="#issues">已知问题</a></li>
+    <li><a href="#maintain">维护</a></li>
+  </ul>
+</nav>
+
+<main>
+<section id="package">
+  <h2>包里有什么</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>路径</th><th>内容</th></tr></thead>
+    <tbody>
+      <tr><th scope="row"><code>style-guide.html</code></th><td>本说明。</td></tr>
+      <tr><th scope="row"><code>templates/template-light.html</code></th><td>明亮版模版，四页：Marketing、Application、E-commerce、Components。双击即可打开，不联网。</td></tr>
+      <tr><th scope="row"><code>templates/template-dark.html</code></th><td>深色版模版，内容与明亮版相同。</td></tr>
+      <tr><th scope="row"><code>tokens/theme.css</code></th><td>明暗两套 CSS 变量，共 {{N_TOKENS}} 个令牌。</td></tr>
+      <tr><th scope="row"><code>tokens/tokens.json</code></th><td>同一份令牌的 JSON：分组、用途、明暗取值、模版引用次数。供构建工具或组件库主题读取。</td></tr>
+      <tr><th scope="row"><code>fonts/</code></th><td>思源黑体与更纱黑体的 woff2（GB2312 子集）、<code>fonts.css</code>、<code>LICENSE.txt</code>。</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>模版的四页对应哪类业务页</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>模版页</th><th>适合对照的业务页</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Application</th><td>工作台、仿真任务列表、监控面板：侧栏 + 顶栏 + 指标卡 + 图表 + 表格。</td></tr>
+      <tr><th scope="row">Components</th><td>按钮、表单、选择、反馈、导航、卡片与表格、弹窗与抽屉。分八个分区，每个组件都有各种状态的样例。</td></tr>
+      <tr><th scope="row">E-commerce</th><td>带筛选的列表、详情、侧拉抽屉。</td></tr>
+      <tr><th scope="row">Marketing</th><td>对外介绍页、落地页。</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">模版底部的切页条是预览外壳，不属于风格。地址后加 <code>#p=components</code> 可直达组件页（另有 <code>marketing</code>、<code>application</code>、<code>ecommerce</code>）。模版里部分示例文案仍是英文，只作版式参考。</p>
+</section>
+
+<section id="quickstart">
+  <h2>三步接入</h2>
+  <ol class="steps">
+    <li><div>
+      <p><b>引入字体与令牌。</b>先字体后令牌，放在业务样式之前。</p>
+      <div class="codehead"><span class="muted">HTML</span><button type="button" class="copy" id="copy-import" data-copy="snip-import">复制</button></div>
+      <pre id="snip-import"><code>&lt;link rel="stylesheet" href="fonts/fonts.css"&gt;
+&lt;link rel="stylesheet" href="tokens/theme.css"&gt;</code></pre>
+    </div></li>
+    <li><div>
+      <p><b>选主题。</b>主题只由根元素的 <code>data-theme</code> 决定；不设则跟随系统。运行时切换只改这个属性。</p>
+      <pre><code>&lt;html data-theme="light"&gt;   &lt;!-- 固定明亮 --&gt;
+&lt;html data-theme="dark"&gt;    &lt;!-- 固定深色 --&gt;
+&lt;html&gt;                      &lt;!-- 跟随系统 --&gt;
+
+document.documentElement.dataset.theme = 'dark';   // 运行时切换</code></pre>
+    </div></li>
+    <li><div>
+      <p><b>把硬编码的值换成令牌。</b>组件 CSS 只写一份，深色模式全靠令牌切换，不要写 <code>.dark</code> 分支。</p>
+      <pre><code>.panel        { background: var(--card); border: 1px solid var(--border-subtle);
+                border-radius: var(--r-xl); padding: 24px; }
+.panel__title { color: var(--heading); }
+.panel__desc  { color: var(--body-subtle); }
+.panel a      { color: var(--fg-brand); }</code></pre>
+    </div></li>
+  </ol>
+  <p class="note warn">浏览器要求 Chrome / Edge 119 及以上：模版用到 <code>color-mix()</code> 与相对颜色语法（<code>--elevation-3</code>）。Safari、Firefox 未在本项目中验证。</p>
+</section>
+
+<section id="principles">
+  <h2>设计原则</h2>
+  <div class="principles">
+    <div><b>蓝色只给操作和选中</b>主按钮、链接、激活导航、选中标签页、开关开启、图表主系列。不要用品牌蓝铺大面积底色。</div>
+    <div><b>状态色只表示状态</b>模版原话：状态色表示状态，绝不用于装饰。仿真场景建议：完成、收敛用 success；发散、报错、中止用 danger；超限、待确认用 warning；运行中、提示用 info（即品牌蓝族）。</div>
+    <div><b>主操作与危险操作不同色</b>品牌蓝与 danger 在色相环上相距 {{DANGER_GAP}}。原品牌珊瑚红与 danger 只差 {{CORAL_GAP}}，「运行」与「报错」几乎同色，这是换色的直接原因。</div>
+    <div><b>一切取值走令牌</b>颜色、圆角、阴影、字体都用 <code>var(--…)</code>。业务代码里不新增 hex。</div>
+    <div><b>中性色是暖石灰</b>标题墨色带极轻的暖调。不要混入纯灰或冷灰（如 Tailwind 的 gray、slate 一类）。</div>
+    <div><b>深色不是反相</b>面、线按明亮版的明度关系推出；文字在它所在的每一种底色上都不低于明亮版。品牌文字色是唯一约定的例外（见对比度）。</div>
+  </div>
+</section>
+
+<section id="color">
+  <h2>颜色</h2>
+  <p>{{N_COLORS}} 个颜色令牌，按用途分组。每行左为明亮、右为深色；「引用」是该令牌在明亮模版里被 <code>var()</code> 引用的次数，次数越多越核心。标「补充」的是本包补的令牌，模版里是字面值。</p>
+  {{COLOR_TABLES}}
+  <p class="note">信息族已并入品牌色阶（IBM Carbon 的做法）：<code>--info</code> 等于 <code>--brand</code>，<code>--info-strong</code> 等于 <code>--fg-brand-strong</code>，<code>--info-soft</code> 等于 <code>--brand-softer</code>。用 info 令牌写的「信息 / 运行中」提示与品牌色一致。</p>
+  <p class="note">图表配色按模版：主系列 <code>--brand</code>，对比或上期 <code>--series-soft</code>，第二系列 <code>--teal</code>，第三系列 <code>--purple</code>。品牌蓝与紫的色差比原站小（见已知问题），三个系列以上时配合图例和线型区分，不要只靠颜色。</p>
+</section>
+
+<section id="contrast">
+  <h2>对比度</h2>
+  <p>APCA Lc 是 W3C 下一代对比度草案的读数，绝对值越大越清楚。常用读法：正文 75 以上，其他内容文字 60 以上，标题与大字 45 以上，禁用与占位 30 以上。WCAG 2 一列供熟悉旧标准的同学对照（AA：正文 4.5:1，大字 3:1）。</p>
+  {{CONTRAST_TABLE}}
+  <p class="note">深色版的品牌文字有意降低对比换取彩度（Lc {{FG_LC}}，依据是 Helmholtz–Kohlrausch 效应：高彩度文字看起来比亮度更亮）。它为短链接、导航标签而定；成段正文不要用品牌色。</p>
+</section>
+
+<section id="type">
+  <h2>字体与字号</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>角色</th><th>令牌</th><th>实际字体</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">正文</th><td><code>--font-sans-stack</code></td><td>思源黑体 Noto Sans SC</td></tr>
+      <tr><th scope="row">标题</th><td><code>--font-display-stack</code></td><td>思源黑体 Noto Sans SC（栈首）。其后保留的 Circular Std 等后备不会用到，业务页不需要它们</td></tr>
+      <tr><th scope="row">等宽</th><td><code>--font-mono-stack</code></td><td>更纱黑体 Sarasa Mono SC：一个汉字正好两个英文宽，数字、代码、时间戳、表格对齐用</td></tr>
+    </tbody>
+  </table></div>
+  <h3>字号梯度</h3>
+  <p>标题统一 700、字距 -0.05em、行高 1.3；正文 16px、行高 1.5。字号取自组件页的字号梯度。</p>
+  {{TYPE_TABLE}}
+  <h3>字重</h3>
+  <p>400 正文，500 按钮、徽章、标签、表单文字，600 强调，700 标题。思源黑体没有 600 这一档，600 与 700 显示为同一个 Bold 字面。</p>
+  <h3>字体文件</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>文件</th><th>字族</th><th class="num">字重区间</th><th class="num">大小</th></tr></thead>
+    <tbody>{{FONT_ROWS}}</tbody>
+  </table></div>
+  <p class="note">字体是 GB2312 子集：6763 个常用汉字加拉丁与标点。生僻字、繁体、日文假名会回退到系统字体；需要完整字库时向维护方要全量版。</p>
+</section>
+
+<section id="space">
+  <h2>间距、圆角与阴影</h2>
+  <h3>间距</h3>
+  <p>4px 基数，{{N_SPACE}} 档。组内紧、组间松；所有 margin、padding、gap 都取梯度上的值。</p>
+  {{SPACE_SCALE}}
+  {{OTHER_TABLES}}
+</section>
+
+<section id="components">
+  <h2>组件规格</h2>
+  <p>每类组件的实际效果见本页末尾的 <a href="#specimens">组件样例</a>（模版组件页原样搬入，可交互）。业务页的同类组件按下面的要点对齐，完整 CSS 见每组的摘录（模版原文）。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>组件</th><th>要点</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">按钮</th><td>胶囊形（<code>--r-full</code>），14px / 500，内边距 14×26；小号 12×20，大号 17×24、16px。主按钮是竖向渐变 brand-light → brand → brand-medium，1px brand-light 描边，白字，悬停时渐变下移露出深端。次要按钮：card 面、border 描边、heading 字；描边按钮透明底；幽灵按钮无边框。焦点 = elevation-1 叠加 focus-ring。</td></tr>
+      <tr><th scope="row">输入框</th><td>card 面、1px border、<code>--r-md</code>，内边距 12×14，14px；占位符 body-subtle。聚焦：品牌色描边 + focus-ring；出错：danger-strong 描边；禁用：50% 不透明。</td></tr>
+      <tr><th scope="row">徽章、提示条</th><td>浅底（-soft）+ 深字（-strong / fg-warning）+ 描边（浅底与文字色 8:2 混合）。徽章 12px / 500、内边距 3×9；提示条 14px、内边距 16、<code>--r-md</code>。</td></tr>
+      <tr><th scope="row">标签页</th><td>胶囊式：选中为品牌底白字，悬停 hover-fill。下划线式：选中为 fg-brand 字 + 2px 品牌色底线。</td></tr>
+      <tr><th scope="row">开关、复选、单选</th><td>开关轨道 40×22，关为 body-subtle，开为 brand；滑块白色 18px。复选、单选用 <code>accent-color: var(--brand)</code>。</td></tr>
+      <tr><th scope="row">卡片、表格</th><td>卡片：card-soft 底、border-subtle、<code>--r-xl</code>、内边距 24。表格：card 底、border 外框、<code>--r-xl</code>；表头 12px 大写、字距 .04em、body-subtle；单元格 14px、body、行线 border-subtle、内边距 12×16。</td></tr>
+      <tr><th scope="row">菜单、下拉</th><td>card 面、border、<code>--r-lg</code>、elevation-2、内边距 8；菜单项 14px / 500、<code>--r-md</code>；激活项 brand-softer 底 + fg-brand-strong 字。</td></tr>
+      <tr><th scope="row">弹窗、抽屉、提示</th><td>弹窗：card 面、border、<code>--r-xl</code>、宽 440、内边距 24。抽屉：右侧 360 宽、左边框。遮罩用 <code>--scrim</code>。工具提示：<code>--tooltip</code> 底、白字、13px、<code>--r-md</code>。</td></tr>
+    </tbody>
+  </table></div>
+  <h3>.ds 别名</h3>
+  <p>组件页的 <code>.ds__*</code> 组件不直接读主题令牌，而是读一层 <code>--ds-*</code> 别名；别名指向下表的主题令牌。业务页照抄组件 CSS 时，可以直接把别名替换成右列的令牌。</p>
+  {{ALIAS_TABLE}}
+  <h3>CSS 摘录（模版原文）</h3>
+  {{EXCERPTS}}
+</section>
+
+<section id="dark">
+  <h2>深色模式</h2>
+  <ul class="plain">
+    <li><b>只换令牌。</b>组件 CSS 一份，切 <code>data-theme</code> 即可。业务页不要写深色特例。</li>
+    <li><b>抬升靠高光，不靠黑影。</b>深色的 <code>--elevation-1/2</code> 带 1px 白色顶缘高光；黑影叠在黑底上看不见。</li>
+    <li><b>遮罩统一 70% 黑</b>（<code>--scrim</code>：明亮 {{SCRIM_LIGHT}}，深色 {{SCRIM_DARK}}）。</li>
+    <li><b>位图压暗，不改资产。</b>深色下给照片、截图加 <code>filter: brightness(.92) saturate(.96)</code>。</li>
+    <li><b>文字在每一种底色上都不低于明亮版。</b>深色卡片比页面底亮，只在页面底上调对比会让卡片上的字变暗；模版的文字令牌已按「所在的每种底色都不退化」推出，业务页直接用令牌即可。</li>
+    <li><b>基色当文字时换前景档。</b>品牌基色、危险基色是给按钮面和图形用的；拿来写字时，品牌字用 <code>--fg-brand</code>，危险字用 <code>--danger-strong</code>。</li>
+    <li><b>插画只暗化纸面与结构。</b>白底、浅灰面、描边跟主题变，插画里的彩色图形不动；插画里的文字（含头像缩写）按文字处理，用文字令牌或按所在底色重新取色。</li>
+    <li><b>工具提示用 <code>--tooltip</code>。</b>不要用标题色当气泡底：标题色在深色下翻成近白，白字会看不见。</li>
+    <li><b>图表次要系列换专用值。</b>深色的 <code>--brand-soft</code> 与卡片同明度，画成线会消失，改用 <code>--series-soft</code>。面积渐变顶部的不透明度按 4/3 补偿：{{OPACITY}}。</li>
+    <li><b>悬停底用 <code>--hover-fill</code>。</b></li>
+  </ul>
+  <h3>模版里令牌之外的深色差异（{{N_DIFF}} 条）</h3>
+  <p>两个模版的 CSS 逐条比对得出，已排除令牌块、<code>.ds</code> 别名的死回退与预览外壳。业务页若有同类元素，照这里处理。</p>
+  {{DARK_DIFF}}
+</section>
+
+<section id="migrate">
+  <h2>改造现有页面</h2>
+  <ol class="steps">
+    <li><div>
+      <p><b>盘点颜色字面值。</b>先知道要换多少处。</p>
+      <pre><code>grep -rnoE '#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)' src/ | cut -d: -f3- | sort | uniq -c | sort -rn</code></pre>
+    </div></li>
+    <li><div><p><b>按用途换成令牌</b>，见下表。同一个颜色值在不同位置可能对应不同令牌，按用途判断，不要按值批量替换。</p></div></li>
+    <li><div><p><b>先全局，后组件。</b>页面底、文字、标题、边框、圆角、字体 → 按钮 → 表单 → 卡片与表格 → 菜单与浮层 → 图表。每类组件在 Components 页找对应样例，核对内边距、圆角、字号。</p></div></li>
+    <li><div><p><b>用了组件库时改主题变量。</b>把组件库的主色、圆角、字体等主题变量指向这些令牌，不要逐个覆盖组件样式；组件库自动生成的浅色阶要逐项核对。</p></div></li>
+    <li><div><p><b>两个主题都过一遍。</b>切换 <code>data-theme</code> 逐页检查。深色有问题只在令牌层修。</p></div></li>
+  </ol>
+  <h3>用途 → 令牌</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>原来的用途</th><th>换成</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">页面底</th><td><code>--page</code></td></tr>
+      <tr><th scope="row">卡片、面板</th><td><code>--card</code>；.card 风格的次级面板用 <code>--card-soft</code></td></tr>
+      <tr><th scope="row">应用壳、侧栏</th><td><code>--app-surface</code></td></tr>
+      <tr><th scope="row">输入框、弹窗的面</th><td><code>--card</code></td></tr>
+      <tr><th scope="row">悬停底</th><td><code>--hover-fill</code>；按钮悬停用 <code>--control-fill</code></td></tr>
+      <tr><th scope="row">分隔线、卡片描边</th><td><code>--border-subtle</code></td></tr>
+      <tr><th scope="row">输入框、按钮边框</th><td><code>--border</code>；弹窗边框 <code>--border-medium</code></td></tr>
+      <tr><th scope="row">标题 / 正文 / 说明</th><td><code>--heading</code> / <code>--body</code> / <code>--body-subtle</code></td></tr>
+      <tr><th scope="row">禁用文字</th><td><code>--fg-disabled</code></td></tr>
+      <tr><th scope="row">链接、激活文字</th><td><code>--fg-brand</code></td></tr>
+      <tr><th scope="row">主按钮</th><td>.btn--primary 的渐变：<code>--brand-light</code> → <code>--brand</code> → <code>--brand-medium</code></td></tr>
+      <tr><th scope="row">选中、开关、进度</th><td><code>--brand</code></td></tr>
+      <tr><th scope="row">品牌浅底</th><td><code>--brand-softer</code>（更浅）/ <code>--brand-soft</code></td></tr>
+      <tr><th scope="row">成功 / 错误 / 警告 / 信息</th><td>对应族的 <code>-soft</code> 底 + <code>-strong</code> 字；警告字用 <code>--fg-warning</code></td></tr>
+      <tr><th scope="row">遮罩 / 工具提示</th><td><code>--scrim</code> / <code>--tooltip</code></td></tr>
+      <tr><th scope="row">焦点</th><td><code>--focus-ring</code></td></tr>
+      <tr><th scope="row">圆角</th><td>控件 <code>--r-md</code>，菜单 <code>--r-lg</code>，卡片面板 <code>--r-xl</code>，胶囊按钮与头像 <code>--r-full</code></td></tr>
+      <tr><th scope="row">阴影</th><td><code>--elevation-1</code>（按钮）/ <code>--elevation-2</code>（菜单、浮层）</td></tr>
+      <tr><th scope="row">数字、代码、时间戳</th><td><code>--font-mono-stack</code>，或 <code>font-variant-numeric: tabular-nums</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="checklist">
+  <h2>验收清单</h2>
+  <ul class="check">
+    <li>业务样式里没有新增的 hex / rgb 字面值（令牌文件除外）。</li>
+    <li>每页在明亮、深色两个主题下都检查过，没有深底深字或浅底浅字。</li>
+    <li>一个视图里只有一个主按钮；删除、中止等危险操作用 danger 色。</li>
+    <li>状态色只出现在状态位置：徽章、提示条、状态点、表单校验。</li>
+    <li>键盘 Tab 时能看到焦点环。</li>
+    <li>数字列、时间戳、代码用等宽字体或 tabular-nums。</li>
+    <li>文字对比度不低于对比度表里同场景的值。</li>
+    <li>字体确实加载：DevTools 控制台执行 <code>document.fonts.check('16px "Noto Sans SC"')</code> 返回 true。</li>
+    <li>图表三个系列以上时有图例或线型区分。</li>
+  </ul>
+</section>
+
+<section id="issues">
+  <h2>已知问题</h2>
+  <ul class="plain">
+    <li><b>品牌文字色是深色对比度的唯一约定例外。</b>深色下拿对比度换彩度（见对比度一节）；成段正文不要用品牌色。</li>
+    <li><b>品牌蓝与图表紫的色差为 {{PURPLE_DE}}</b>（OKLab ΔE），原站三个系列两两为 {{ORIG_DE}}。系列多时配合图例与线型。</li>
+    <li><b>深色 <code>--fg-brand-strong</code> 的彩度已到 sRGB 上限</b>，无法更艳。</li>
+    <li><b>信息族并入了品牌色阶</b>，与旧版独立的 info 蓝不同。</li>
+    <li><b>明亮模版的四处遮罩取值不一</b>，<code>--scrim</code> 取弹窗那一档。</li>
+  </ul>
+</section>
+
+<section id="maintain">
+  <h2>维护</h2>
+  <p>包内文件都由脚本生成，不要手改。改颜色回到构建管线：品牌色在 <code>_theme_brand.py</code>（<code>ANCHOR</code> 当前为 {{ANCHOR}}），中性色与状态色的深色值在 <code>_theme_dark.py</code>。改完按顺序重新生成：</p>
+  <pre><code>python3 _build_zh.py --sim
+python3 _build_zh.py --sim --dark
+python3 _pack_sim.py</code></pre>
+  <p class="meta">{{SOURCE}}</p>
+</section>
+</main>
+</div>
+
+<section id="specimens" class="specimens" aria-labelledby="specimens-h">
+  <h2 id="specimens-h">组件样例</h2>
+  <p>模版组件页的原样内容，{{N_SECTIONS}} 个分区、{{N_BLOCKS}} 个组件块：DOM、CSS 与交互脚本都由打包脚本从两个模版产物里取出，明亮 / 深色随本页主题切换，和模版同源。可以直接操作——标签页、分段按钮、下拉菜单、手风琴、步进器、范围滑块、关闭提示条、打开弹窗与抽屉；悬停看工具提示，按 Tab 看焦点环。</p>
+  <p class="note">每块右上角的 <code>xxx.md</code> 是原设计系统里对应的规范文件名，仅作标识。组件样例按模版宽度排版，窄屏下会按模版自己的断点折行。</p>
+  {{SPECIMEN_LIGHT}}
+  {{SPECIMEN_DARK}}
+</section>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement, KEY = 'sim-theme-guide';
+  var buttons = document.querySelectorAll('[data-set-theme]');
+  function mark() {
+    var cur = root.dataset.theme || 'system';
+    buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.setTheme === cur)); });
+  }
+  function apply(v) {
+    if (v === 'light' || v === 'dark') root.dataset.theme = v; else delete root.dataset.theme;
+    mark();
+  }
+  try { var saved = localStorage.getItem(KEY); if (saved) apply(saved); } catch (e) {}
+  mark();
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () {
+      apply(b.dataset.setTheme);
+      try { localStorage.setItem(KEY, b.dataset.setTheme); } catch (e) {}
+    });
+  });
+  // 组件样例：声明式影子 DOM 在解析时已挂好；不支持的浏览器在这里补挂
+  document.querySelectorAll('.specimen').forEach(function (host) {
+    var root = host.shadowRoot;
+    if (!root) {
+      var tpl = host.querySelector('template');
+      if (!tpl) return;
+      root = host.attachShadow({ mode: 'open' });
+      root.appendChild(tpl.content.cloneNode(true));
+      tpl.remove();
+    }
+    // 组件页里的页内死锚点（#…）在说明页里不跳转
+    root.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (a) e.preventDefault();
+    });
+    // 组件页自己的交互脚本原样运行，document 换成指向这个影子根的替身
+    (function (document) {
+/*{{DS_JS}}*/
+    })({
+      querySelector: function (s) { return root.querySelector(s); },
+      getElementById: function (id) { return root.getElementById(id); },
+      addEventListener: function (t, f, o) { window.document.addEventListener(t, f, o); }
+    });
+  });
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var el = document.getElementById(b.dataset.copy), text = el.textContent;
+      function done(ok) { b.textContent = ok ? '已复制' : '请手动复制'; setTimeout(function () { b.textContent = '复制'; }, 1600); }
+      function select() { var r = document.createRange(); r.selectNodeContents(el); var s = getSelection(); s.removeAllRanges(); s.addRange(r); done(false); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done(true); }, select);
+      } else { select(); }
+    });
+  });
+})();
+</script>
